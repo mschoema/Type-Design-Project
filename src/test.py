@@ -23,15 +23,32 @@ def addBaseImages():
         if file.endswith(".png"):
             Id = file[:-4]
             image = Image.open(BASE_IMAGES_PATH + file)
+            image = image.convert('1')
             CHAR_DIC.update({Id: image})
+
+def addBaseImages2():
+    global CHAR_DIC
+    for file in os.listdir(BASE_IMAGES_PATH):
+        if file.endswith(".png"):
+            Id = file[:-4]
+            charDef = CHARDEF_DIC.get(Id)
+            try:
+                if charDef.lid == 0:
+                    image = Image.open(BASE_IMAGES_PATH + file)
+                    image = image.convert('1')
+                    CHAR_DIC.update({Id: image})
+            except Exception as error:
+                print(Id)
+
 
 def createCharDefDic():
     global CHARDEF_DIC
-    with open(CHARACTER_DATABASE_PATH, newline='') as csvfile:
+    with open(CHARACTER_DATABASE_PATH) as csvfile:
         fileReader = csv.reader(csvfile, delimiter=',')
         count = 0
         for row in fileReader:
             # TODO: verify numbers
+            count += 1
             Id = row[0]
             lid = int(row[1])
             compsLenght = len(layouts.get(lid))
@@ -43,7 +60,10 @@ def createCharDefDic():
 
 def createCharImage(Id):
     global CHAR_DIC
-    cDef = CHARDEF_DIC.get(Id)
+    try:
+        cDef = CHARDEF_DIC.get(Id)
+    except Exception as error:
+        print(error)
     lid = cDef.lid
     compIds = cDef.compIds
     if lid == 0:
@@ -68,12 +88,15 @@ def completeImageDic():
 
 def saveImages():
     for Id, im in CHAR_DIC.items():
-        im.save(TARGET_PATH + Id + ".png")
+        charDef = CHARDEF_DIC.get(Id)
+        if charDef.lid != 0:
+            im.save(TARGET_PATH + Id + ".png")
 
 
 def createCharacterSet():
-    addBaseImages()
     createCharDefDic()
+    #addBaseImages()
+    addBaseImages2()
     completeImageDic()
     saveImages()
 
