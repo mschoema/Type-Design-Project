@@ -12,6 +12,10 @@ CHARACTER_DATABASE_PATH = ""
 CHARDEF_DIC = {}
 CHAR_DIC = {}
 
+BASE_COUNT = 0
+ROUGH_DEF_COUNT = 0
+PRECISE_DEF_COUNT = 0
+
 class CharDef:
     def __init__(self, lid, compIds, preciseDef=False, boxes=None):
         self.lid = lid
@@ -20,7 +24,11 @@ class CharDef:
         self.boxes = boxes
 
 def createCharDefDic():
+    print("Creating character definition dictionary")
     global CHARDEF_DIC
+    global BASE_COUNT
+    global ROUGH_DEF_COUNT
+    global PRECISE_DEF_COUNT
     with open(CHARACTER_DATABASE_PATH) as csvfile:
         fileReader = csv.reader(csvfile, delimiter=',')
         count = 0
@@ -42,14 +50,22 @@ def createCharDefDic():
                     dx = int(row[3 + 4*i + 2 + compsLenght])
                     dy = int(row[4 + 4*i + 2 + compsLenght])
                     box = BoundingBox(x,y,dx,dy)
-                    print(box)
                     boxes.append(box)
+                PRECISE_DEF_COUNT += 1
                 charDef = CharDef(lid, compIds, True, boxes)
-            else:                
+            else:
+                if lid == 0:
+                    BASE_COUNT += 1
+                else:
+                    ROUGH_DEF_COUNT += 1
                 charDef = CharDef(lid, compIds)
             CHARDEF_DIC.update({Id: charDef})
+    print("Amount of base characters: ", BASE_COUNT)
+    print("Amount of roughly defined characters: ", ROUGH_DEF_COUNT)
+    print("Amount of precisely defined characters: ", PRECISE_DEF_COUNT)
 
 def addBaseImages():
+    print("Adding base images to dictionary")
     global CHAR_DIC
     for file in os.listdir(BASE_IMAGES_PATH):
         if file.endswith(".png"):
@@ -74,7 +90,7 @@ def createCharImage(Id):
     except Exception as error:
         print(error)
     if lid == 0:
-        raise Exception("Base image for character id " + Id + " was not provided.")
+        raise Exception("Base image for character id " + Id + " was not provided")
     compImgs = []
     for i in compIds:
         if i not in CHAR_DIC.keys():
@@ -88,22 +104,33 @@ def createCharImage(Id):
     CHAR_DIC.update({Id: im})
 
 def completeImageDic():
+    print("Creating new character images")
     global CHAR_DIC
+    i = 0
+    tot = len(CHARDEF_DIC)
     for key in CHARDEF_DIC.keys():
+        i += 1
+        perc = i*100//tot
+        sys.stdout.write("\r%i %%" % perc)
+        sys.stdout.flush()
         try:
             if key not in CHAR_DIC.keys():
                 createCharImage(key)
         except Exception as error:
-            print(key)
-            print(error)
+            print("")
+            print("Error for key n°: ", key)
+            print("Error message: ", error)
+    print("")
 
 def saveImages():
+    print("Saving newly created images to output directory")
     for Id, im in CHAR_DIC.items():
         charDef = CHARDEF_DIC.get(Id)
         if charDef.lid != 0:
             if charDef.preciseDef:
                 im.save(TARGET_PATH + "preciseDef/" + Id + ".png")
-            im.save(TARGET_PATH + Id + ".png")
+            else:
+                im.save(TARGET_PATH + "roughDef/" + Id + ".png")
 
 
 def createCharacterSet():
@@ -111,6 +138,7 @@ def createCharacterSet():
     addBaseImages()
     completeImageDic()
     saveImages()
+    print("Done")
 
 def main():
     if len(sys.argv) != 4:

@@ -1,8 +1,10 @@
 import sys
 import csv
 from layouts import layouts, BoundingBox
-from findPosition_v2 import findBoxes, findBestBox
+from findPosition_v2 import findBoxes, findBestBox, areSame
+from findPosition_v3 import findBestBoxes
 from PIL import Image
+import time
 
 UNICODE_DIC = {}
 CHAR_DIC = {}
@@ -11,6 +13,7 @@ IMAGES_DIC = {}
 CHARACTER_DATABASE_PATH = ""
 OUTPUT_DATABASE_PATH = ""
 IMAGES_PATH = ""
+ERROR = 0
 
 class CharDef:
     def __init__(self, lid, compChars, preciseDef):
@@ -34,6 +37,7 @@ def getCompIds(compChars):
     return compIds
 
 def createCharDic():
+    print("Creating image dictionary")
     global CHAR_DIC
     global UNICODE_DIC
     with open(CHARACTER_DATABASE_PATH, encoding="utf16") as csvfile:
@@ -47,7 +51,6 @@ def createCharDic():
                 lid = int(row[3][3:])
             except Exception as error:
                 break
-            print(count)
             count += 1
             char = row[0]
             Id = row[1]
@@ -70,18 +73,46 @@ def loadImage(Id):
     return im
 
 def computeBoxes(Id, compIds):
+    global ERROR
     im = loadImage(Id)
     baseBoxes = findBoxes(im)
-    boxes = []
+    if len(baseBoxes) == len(compIds) and areSame(compIds):
+        boxes = baseBoxes
+    else:
+        boxes = []
+        for compId in compIds:
+            compIm = loadImage(compId)
+            (box, error) = findBestBox(im, baseBoxes, compIm)
+            boxes.append(box)
+            ERROR += error
+    return boxes
+
+def computeBoxes2(Id, compIds):
+    global ERROR
+    im = loadImage(Id)
+    comps = []
     for compId in compIds:
         compIm = loadImage(compId)
-        box = findBestBox(im, baseBoxes, compIm)
-        boxes.append(box)
+        comps.append(compIm)
+    try:
+        (boxes, error) = findBestBoxes(im, comps)
+    except Exception as e:
+        print(Id)
+        print(e)
+    ERROR += error
     return boxes
 
 def createReadableCharDic():
+    print("Creating character definition dictionary")
     global READABLE_CHAR_DIC
+    tot = len(CHAR_DIC)
+    print("Amount of character definitions to create: ", tot)
+    i = 0
     for k,v in CHAR_DIC.items():
+        i += 1
+        perc = i*100//tot
+        sys.stdout.write("\r%i %%" % perc)
+        sys.stdout.flush()
         lid = v.lid
         compIds = getCompIds(v.compChars)
         none = False
@@ -101,6 +132,8 @@ def createReadableCharDic():
         READABLE_CHAR_DIC.update({k: charDef})
 
 def saveToCsv():
+    print("")
+    print("Saving database to csv")
     with open(OUTPUT_DATABASE_PATH + "database.csv", "w", newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
         for k,v in READABLE_CHAR_DIC.items():
@@ -119,9 +152,13 @@ def saveToCsv():
             writer.writerow(toWrite)
 
 def createDatabaseCSV():
+    start = time.time()
     createCharDic()
     createReadableCharDic()
     saveToCsv()
+    end = time.time()
+    print("Execution time: " + str(int(end-start)) + " seconds")
+    print("Total character error: ", ERROR)
 
 
     

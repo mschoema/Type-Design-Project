@@ -42,6 +42,12 @@ def regionLabeling(array):
                 m += 1
     return m-2
 
+def areSame(chars):
+    res = True
+    for i in range(len(chars) - 1):
+        res = res and chars[i] == chars[i+1]
+    return res
+
 def findBoundingBox(array, label):
     region = np.where(array == label)
     ymin, ymax = np.min(region[0]), np.max(region[0])
@@ -81,6 +87,8 @@ def findBestBox(image, boxes, charImage):
     for L in range(len(boxes)):
         for subset in itertools.combinations(boxes, L+1):
             box = combineBoxes(list(subset))
+            if box.getSize()[0] == 0 or box.getSize()[1] == 0:
+                continue
             im1 = char.resize(box.getSize())
             im2 = image.crop(box.getBoxOutline())
             arr1 = np.asarray(im1)
@@ -91,7 +99,7 @@ def findBestBox(image, boxes, charImage):
             if error < minError:
                 minError = error
                 bestBox = box
-    return bestBox
+    return (bestBox, minError)
 
 def main(c, c1, c2):
     im = Image.open("../CharacterImages/" + c + ".png")
@@ -106,10 +114,12 @@ def main(c, c1, c2):
     char1.save("../testFiles/char1.png")
     char2.save("../testFiles/char2.png")
     boxes = findBoxes(im)
-    box1 = findBestBox(im, boxes, char1)
-    box2 = findBestBox(im, boxes, char2)
+    box1,err1 = findBestBox(im, boxes, char1)
+    box2,err2 = findBestBox(im, boxes, char2)
     print(box1)
     print(box2)
+    #box1 = boxes[0]
+    #box2 = boxes[1]
     cut1 = im.crop(box1.getBoxOutline())
     cut2 = im.crop(box2.getBoxOutline())
     cut1.save("../testFiles/cut1.png")

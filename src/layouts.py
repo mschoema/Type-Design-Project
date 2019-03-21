@@ -51,6 +51,15 @@ layouts = {
     25: [(0,0,1,1), (0,0,0.5,0.5), (0.5,0,0.5,0.5)],
     26: [(0,0,1,0.25), (0,0.25,1,0.25), (0,0.5,1,0.25), (0,0.75,1,0.25)],
     27: [(0,0,1,1), (0,0,0.5,0.5), (0.5,0,0.5,0.5), (0,0.5,0.5,0.5), (0.5,0.5,0.5,0.5)],
+    28: [(0,0,1,1), (0,0.33,1,0.34)],
+    29: [(0,0,0.5,1), (0.5,0,0.5,1), (0,0.33,1,0.34)],
+    30: [(0,0,1,0.5), (0,0.5,1,0.5), (0.33,0.5,0.34,0.33)],
+    31: [(0,0,1,0.5), (0.33,0,0.34,0.5), (0,0.5,1,0.5)],
+    32: [(0,0,0.33,0.5), (0.33,0,0.34,0.5), (0.67,0,0.33,0.5), (0,0.5,1,0.5)],
+    33: [(0,0,1,0.25), (0,0.25,1,0.25), (0,0.5,0.5,0.5), (0.5,0.5,0.5,0.5)],
+    34: [(0,0,1,0.67), (0,0.33,0.33,0.34), (0.67,0.33,0.33,0.34), (0,0.67,1,0.33)],
+    35: [(0,0,0.5,1), (0.5,0,0.5,0.33), (0.5,0.33,0.5,0.34), (0.5,0.67,0.5,0.33)],
+    36: [(0,0,1,0.2), (0,0.2,1,0.2), (0,0.4,1,0.2), (0,0.6,1,0.2), (0,0.8,1,0.2)]
 }
 
 def findBoundingBox(image):
@@ -123,7 +132,7 @@ def applyLayout(layout, images):
                 cutout = findCutout(targetBox, charBox)
                 tempImage = image.crop(cutout)
                 #tempImage = image.resize(targetBox.getSize())
-            outImage.paste(tempImage, targetBox.getBoxOutline(), ImageChops.invert(tempImage))
+            outImage.paste(tempImage, targetBox.getBoxOutline(), outImage.crop(targetBox.getBoxOutline()))
     return outImage
 
 def applyPreciseLayout(boxes, images):
@@ -137,5 +146,5 @@ def applyPreciseLayout(boxes, images):
             targetBox = boxes[i]
             charBox = findBoundingBox(image)
             char = image.crop(charBox.getBoxOutline()).resize(targetBox.getSize())
-            outImage.paste(char, targetBox.getBoxOutline(), ImageChops.invert(char))
+            outImage.paste(char, targetBox.getBoxOutline(), outImage.crop(targetBox.getBoxOutline()))
     return outImage
