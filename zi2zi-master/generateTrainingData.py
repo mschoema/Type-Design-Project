@@ -45,10 +45,10 @@ if __name__=="__main__":
 
 	args = parser.parse_args()
 	roughConvertInPath = args.roughConvertInPath+"*.png"
-    roughConvertOutPath = args.roughConvertOutPath
-    originConvertInPath = args.originConvertInPath+"*.png"
-    originConvertOutPath = args.originConvertOutPath
-    trainPath = args.trainPath
+    	roughConvertOutPath = args.roughConvertOutPath
+    	originConvertInPath = args.originConvertInPath+"*.png"
+    	originConvertOutPath = args.originConvertOutPath
+    	trainPath = args.trainPath
 
 	convertAllpng(roughConvertInPath, roughConvertOutPath)
 	convertAllpng(originConvertInPath, originConvertOutPath)
@@ -67,8 +67,8 @@ if __name__=="__main__":
 	    rough_image = Image.open(roughConvertOutPath+'/'+images[i])
 	    origin_image = Image.open(originConvertOutPath+'/'+images[i])
 	    imagefile = []
-	    imagefile.append(rough_image)
 	    imagefile.append(origin_image)
+	    imagefile.append(rough_image)
 	    for image in imagefile:
 	        target.paste(image, (left, 0, right, UNIT_SIZE))
 	        left += UNIT_SIZE 
