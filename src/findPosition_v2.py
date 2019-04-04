@@ -101,6 +101,53 @@ def findBestBox(image, boxes, charImage):
                 bestBox = box
     return (bestBox, minError)
 
+def computeError(image, box, charImage):
+    arr = np.logical_not(np.asarray(charImage)).astype(int)
+    bb = findBoundingBox(arr, 1)
+    char = charImage.crop(bb.getBoxOutline())
+    im1 = char.resize(box.getSize())
+    im2 = image.crop(box.getBoxOutline())
+    arr1 = np.asarray(im1)
+    arr2 = np.asarray(im2)
+    arrXor = np.logical_xor(arr1,arr2)
+    (dx, dy) = box.getSize()
+    return np.count_nonzero(arrXor) / (dx * dy)
+
+
+def matrixElim(image, baseBoxes, compImgs):
+    n = len(baseBoxes)
+    errArr = np.empty((n,n))
+    for i in range(n):
+        for j in range(n):
+            errArr[i,j] = computeError(image,baseBoxes[i],compImgs[j])
+    print(errArr)
+    mean = errArr.mean(axis=1)
+    errArr = errArr - mean[:,None]
+    print(errArr)
+    boxes = [None]*n
+    boxTaken = [False]*n
+    for i in range(n):
+        ind = np.unravel_index(np.argmin(errArr, axis=None), errArr.shape)
+        count = ind[1]
+        boxPos = 0
+        print(count)
+        while count > 0:
+            if not boxTaken[boxPos]:
+                count -= 1
+            boxPos += 1
+        while count == 0:
+            if boxTaken[boxPos]:
+                boxPos += 1
+            else:
+                count -= 1
+        boxes[boxPos] = baseBoxes[ind[0]]
+        boxTaken[boxPos] = True
+        errArr = np.delete(np.delete(errArr, ind[0], axis=0), ind[1], axis=1)
+        del baseBoxes[ind[0]]
+        print(boxTaken)
+    return boxes
+
+
 def main(c, c1, c2):
     im = Image.open("../CharacterImages/" + c + ".png")
     im1 = Image.open("../CharacterImages/" + c1 + ".png")

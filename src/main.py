@@ -33,7 +33,6 @@ def createCharDefDic():
         fileReader = csv.reader(csvfile, delimiter=',')
         count = 0
         for row in fileReader:
-            # TODO: verify numbers
             count += 1
             Id = row[0]
             lid = int(row[1])

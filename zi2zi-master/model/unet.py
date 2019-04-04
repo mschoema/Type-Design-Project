@@ -8,23 +8,23 @@ import scipy.misc as misc
 import os
 import time
 from collections import namedtuple
-from .ops import conv2d, deconv2d, lrelu, fc, batch_norm, init_embedding, conditional_instance_norm
+from .ops import conv2d, deconv2d, lrelu, fc, batch_norm, init_embedding, conditional_instance_norm, xor_pool2d2x2, xor_pool2d3x3, dist_map_loss
 from .dataset import TrainDataProvider, InjectDataProvider, NeverEndingLoopingProvider
 from .utils import scale_back, merge, save_concat_images
 
 # Auxiliary wrapper classes
 # Used to save handles(important nodes in computation graph) for later evaluation
 LossHandle = namedtuple("LossHandle", ["d_loss", "g_loss", "const_loss", "l1_loss",
-                                       "category_loss", "cheat_loss", "tv_loss"])
+                                       "category_loss", "cheat_loss", "tv_loss", "edge_loss"])
 InputHandle = namedtuple("InputHandle", ["real_data", "embedding_ids", "no_target_data", "no_target_ids"])
 EvalHandle = namedtuple("EvalHandle", ["encoder", "generator", "target", "source", "embedding"])
 SummaryHandle = namedtuple("SummaryHandle", ["d_merged", "g_merged"])
 
 
 class UNet(object):
-    def __init__(self, experiment_dir=None, experiment_id=0, batch_size=16, input_width=256, output_width=256,
+    def __init__(self, experiment_dir=None, experiment_id=0, batch_size=16, input_width=250, output_width=250,
                  generator_dim=64, discriminator_dim=64, L1_penalty=100, Lconst_penalty=15, Ltv_penalty=0.0,
-                 Lcategory_penalty=1.0, embedding_num=40, embedding_dim=128, input_filters=3, output_filters=3):
+                 Lcategory_penalty=1.0, embedding_num=40, embedding_dim=128, input_filters=1, output_filters=1):
         self.experiment_dir = experiment_dir
         self.experiment_id = experiment_id
         self.batch_size = batch_size
@@ -36,10 +36,12 @@ class UNet(object):
         self.Lconst_penalty = Lconst_penalty
         self.Ltv_penalty = Ltv_penalty
         self.Lcategory_penalty = Lcategory_penalty
+        self.Edge_penalty = Edge_penalty
         self.embedding_num = embedding_num
         self.embedding_dim = embedding_dim
         self.input_filters = input_filters
         self.output_filters = output_filters
+        self.loss_depth = 1
         # init all the directories
         self.sess = None
         # experiment_dir is needed for training
@@ -126,13 +128,19 @@ class UNet(object):
             output = tf.nn.tanh(d8)  # scale to (-1, 1)
             return output
 
+    def edge_computation(self, decoded):
+        sigm = tf.divide(tf.add(decoded, tf.constant(1)),tf.constant(2))
+        xor = tf.xor_pool2d2x2(sigm)
+        return xor
+
     def generator(self, images, embeddings, embedding_ids, inst_norm, is_training, reuse=False):
         e8, enc_layers = self.encoder(images, is_training=is_training, reuse=reuse)
         local_embeddings = tf.nn.embedding_lookup(embeddings, ids=embedding_ids)
         local_embeddings = tf.reshape(local_embeddings, [self.batch_size, 1, 1, self.embedding_dim])
         embedded = tf.concat([e8, local_embeddings], 3)
         output = self.decoder(embedded, enc_layers, embedding_ids, inst_norm, is_training=is_training, reuse=reuse)
-        return output, e8
+        edges = edge_computation(output)
+        return output, e8, edges
 
     def discriminator(self, image, is_training, reuse=False):
         with tf.variable_scope("discriminator"):
@@ -155,7 +163,7 @@ class UNet(object):
     def build_model(self, is_training=True, inst_norm=False, no_target_source=False):
         real_data = tf.placeholder(tf.float32,
                                    [self.batch_size, self.input_width, self.input_width,
-                                    self.input_filters + self.output_filters],
+                                    self.input_filters + self.output_filters + self.loss_depth],
                                    name='real_A_and_B_images')
         embedding_ids = tf.placeholder(tf.int64, shape=None, name="embedding_ids")
         no_target_data = tf.placeholder(tf.float32,
@@ -169,8 +177,10 @@ class UNet(object):
         # source images
         real_A = real_data[:, :, :, self.input_filters:self.input_filters + self.output_filters]
 
+        loss_maps = real_data[:, :, :, self.input_filters + self.output_filters:self.input_filters + self.output_filters + self.loss_depth]
+
         embedding = init_embedding(self.embedding_num, self.embedding_dim)
-        fake_B, encoded_real_A = self.generator(real_A, embedding, embedding_ids, is_training=is_training,
+        fake_B, encoded_real_A, edges_fake_B = self.generator(real_A, embedding, embedding_ids, is_training=is_training,
                                                 inst_norm=inst_norm)
         real_AB = tf.concat([real_A, real_B], 3)
         fake_AB = tf.concat([real_A, fake_B], 3)
@@ -202,6 +212,8 @@ class UNet(object):
                                                                              labels=tf.zeros_like(fake_D)))
         # L1 loss between real and generated images
         l1_loss = self.L1_penalty * tf.reduce_mean(tf.abs(fake_B - real_B))
+        # Edge loss of generated images
+        edge_loss = self.Edge_penalty * dist_map_loss(loss_maps, edges_fake_B)
         # total variation loss
         width = self.output_width
         tv_loss = (tf.nn.l2_loss(fake_B[:, 1:, :, :] - fake_B[:, :width - 1, :, :]) / width
@@ -212,7 +224,7 @@ class UNet(object):
                                                                             labels=tf.ones_like(fake_D)))
 
         d_loss = d_loss_real + d_loss_fake + category_loss / 2.0
-        g_loss = cheat_loss + l1_loss + self.Lcategory_penalty * fake_category_loss + const_loss + tv_loss
+        g_loss = cheat_loss + l1_loss + self.Lcategory_penalty * fake_category_loss + const_loss + tv_loss + edge_loss
 
         if no_target_source:
             # no_target source are examples that don't have the corresponding target images
@@ -251,6 +263,7 @@ class UNet(object):
         category_loss_summary = tf.summary.scalar("category_loss", category_loss)
         cheat_loss_summary = tf.summary.scalar("cheat_loss", cheat_loss)
         l1_loss_summary = tf.summary.scalar("l1_loss", l1_loss)
+        edge_loss_summary = tf.summary.scalar("edge_loss", edge_loss)
         fake_category_loss_summary = tf.summary.scalar("fake_category_loss", fake_category_loss)
         const_loss_summary = tf.summary.scalar("const_loss", const_loss)
         d_loss_summary = tf.summary.scalar("d_loss", d_loss)
@@ -259,8 +272,8 @@ class UNet(object):
 
         d_merged_summary = tf.summary.merge([d_loss_real_summary, d_loss_fake_summary,
                                              category_loss_summary, d_loss_summary])
-        g_merged_summary = tf.summary.merge([cheat_loss_summary, l1_loss_summary,
-                                             fake_category_loss_summary,
+        g_merged_summary = tf.summary.merge([cheat_loss_summary, l1_loss_summary, 
+                                             edge_loss_summary, fake_category_loss_summary,
                                              const_loss_summary,
                                              g_loss_summary, tv_loss_summary])
 
@@ -276,7 +289,8 @@ class UNet(object):
                                  l1_loss=l1_loss,
                                  category_loss=category_loss,
                                  cheat_loss=cheat_loss,
-                                 tv_loss=tv_loss)
+                                 tv_loss=tv_loss,
+                                 edge_loss=edge_loss)
 
         eval_handle = EvalHandle(encoder=encoded_real_A,
                                  generator=fake_B,
@@ -571,6 +585,7 @@ class UNet(object):
                                                                          loss_handle.cheat_loss,
                                                                          loss_handle.const_loss,
                                                                          loss_handle.l1_loss,
+                                                                         loss_handle.edge_loss,
                                                                          loss_handle.tv_loss,
                                                                          summary_handle.g_merged],
                                                                         feed_dict={
@@ -582,9 +597,9 @@ class UNet(object):
                                                                         })
                 passed = time.time() - start_time
                 log_format = "Epoch: [%2d], [%4d/%4d] time: %4.4f, d_loss: %.5f, g_loss: %.5f, " + \
-                             "category_loss: %.5f, cheat_loss: %.5f, const_loss: %.5f, l1_loss: %.5f, tv_loss: %.5f"
+                             "category_loss: %.5f, cheat_loss: %.5f, const_loss: %.5f, l1_loss: %.5f, edge_loss: %.5f, tv_loss: %.5f"
                 print(log_format % (ei, bid, total_batches, passed, batch_d_loss, batch_g_loss,
-                                    category_loss, cheat_loss, const_loss, l1_loss, tv_loss))
+                                    category_loss, cheat_loss, const_loss, l1_loss, edge_loss, tv_loss))
                 summary_writer.add_summary(d_summary, counter)
                 summary_writer.add_summary(g_summary, counter)
 

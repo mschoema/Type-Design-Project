@@ -756,7 +756,7 @@
 548e,2,5904,53e3,0 # YES
 548f,1,53e3,6c38,0 # YES
 5490,1,53e3,4ed8,0 # NO
-5492,13,53e3,53e3,51e0,0 # NO (Special count flag?)
+5492,13,53e3,53e3,51e0,0 # YES (Special count flag)
 5494,1,53e3,5361,0 # YES
 5495,1,53e3,53e4,0 # YES
 5496,1,53e3,52a0,0 # NO
@@ -963,7 +963,7 @@
 5662,1,53e3,5965,0 # YES
 5664,1,53e3,7981,0 # YES
 5668,0,5668,0
-5669,27,738b,53e3,53e3,53e3,53e3,0 # NO (Special count flag?)
+5669,27,738b,53e3,53e3,53e3,53e3,0 # YES (Special count flag)
 566a,1,53e3,55bf,0 # YES
 566b,1,53e3,610f,0 # YES
 566c,1,53e3,7b6e,0 # NO
@@ -1158,7 +1158,7 @@
 5d14,2,5c71,96b9,0 # NO
 5d29,2,5c71,670b,0 # YES
 5ddb,0,5ddb,0
-5ddd,10,4e3f,4e28,4e28,0 # NO (Special count flag?)
+5ddd,10,4e3f,4e28,4e28,0 # YES (Special count flag)
 5de2,2,5ddb,679c,0 # NO
 5de5,0,5de5,0
 5de6,0,5de6,0
@@ -1327,7 +1327,7 @@
 7539,2,7531,4e02,0 # YES
 754f,0,754f,0
 7550,11,4e00,53e3,7530,0 # NO (Matrix elim?)
-757a,36,4e00,7530,4e00,7530,4e00,0 # NO (Special count?)
+757a,36,4e00,7530,4e00,7530,4e00,0 # YES (Special count)
 757e,12,7530,7530,7530,0 # YES
 758b,0,758b,0
 7590,26,5341,5196,7530,758b,0 # NO
@@ -1448,7 +1448,7 @@
 8c55,0,8c55,0
 8c61,0,8c61,0
 8c66,3,864d,8c55,0 # YES
-8c6a,26,4ea0,53e3,5196,8c55,0 # NO (Special count?)
+8c6a,26,4ea0,53e3,5196,8c55,0 # YES (Special count)
 8c78,0,8c78,0
 8d1d,0,8d1d,0
 8d1e,2,535c,8d1d,0 # NO
@@ -1485,7 +1485,7 @@
 963f,1,961d,53ef,0 # YES
 96b6,2,8080,6c3a,0 # NO
 96b9,0,96b9,0
-96bb,2,96b9,53f3,0 # YES
+96bb,2,96b9,53c8,0 # NO
 96be,1,53c8,96b9,0 # YES
 96e8,0,96e8,0
 9700,2,96e8,800c,0 # YES
@@ -1526,4 +1526,4 @@
 9f3b,11,81ea,7530,4e0c,0 # YES
 9f50,0,9f50,0
 9f7f,0,9f7f,0
-9fa0,19,4ebc,53e3,53e3,53e3,518a,0 # NO (Special count?)
+9fa0,19,4ebc,53e3,53e3,53e3,518a,0 # NO (Special count) (removes if we remove mean on axis=1)

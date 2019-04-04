@@ -39,7 +39,7 @@ def get_batch_iter(examples, batch_size, augment):
     def process(img):
         img = bytes_to_file(img)
         try:
-            img_A, img_B = read_split_image(img)
+            img_A, img_B, loss_map = read_split_image(img)
             if augment:
                 # augment the image by:
                 # 1) enlarge the image
@@ -57,7 +57,8 @@ def get_batch_iter(examples, batch_size, augment):
                 img_B = shift_and_resize_image(img_B, shift_x, shift_y, nw, nh)
             img_A = normalize_image(img_A)
             img_B = normalize_image(img_B)
-            return np.concatenate([img_A, img_B], axis=2)
+            loss_map = normalize_image(loss_map)
+            return np.concatenate([img_A, img_B, loss_map], axis=2)
         finally:
             img.close()
 

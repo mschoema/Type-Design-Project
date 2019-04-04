@@ -77,7 +77,7 @@ def findBestBox(arr, regions, charImage):
             box = findBoundingBox(np.logical_not(arrSubset).astype(int), 1)
             if box.getSize()[0] == 0 or box.getSize()[1] == 0:
                 continue
-            subImage = img_frombytes(arrSubset)
+            subImage = img_frombytes(arrSubseext)
             im1 = subImage.crop(box.getBoxOutline())
             im2 = char.resize(box.getSize())
             arr1 = np.asarray(im1)

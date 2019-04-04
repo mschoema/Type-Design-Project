@@ -35,12 +35,13 @@ def normalize_image(img):
 
 def read_split_image(img):
     mat = misc.imread(img).astype(np.float)
-    side = int(mat.shape[1] / 2)
+    side = int(mat.shape[1] / 3)
     assert side * 2 == mat.shape[1]
     img_A = mat[:, :side]  # target
-    img_B = mat[:, side:]  # source
+    img_B = mat[:, side:side*2]  # source
+    img_C = mat[:, side*2:]  # loss map
 
-    return img_A, img_B
+    return img_A, img_B, img_C
 
 
 def shift_and_resize_image(img, shift_x, shift_y, nw, nh):

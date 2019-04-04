@@ -1,7 +1,7 @@
 import sys
 import csv
 from layouts import layouts, BoundingBox
-from findPosition_v2 import findBoxes, findBestBox, areSame
+from findPosition_v2 import findBoxes, findBestBox, areSame, matrixElim
 from findPosition_v3 import findBestBoxes
 from PIL import Image
 import time
@@ -76,8 +76,12 @@ def computeBoxes(Id, compIds):
     global ERROR
     im = loadImage(Id)
     baseBoxes = findBoxes(im)
-    if len(baseBoxes) == len(compIds) and areSame(compIds):
-        boxes = baseBoxes
+    if len(baseBoxes) == len(compIds):
+        compImgs = []
+        for compId in compIds:
+            compIm = loadImage(compId)
+            compImgs.append(compIm)
+        boxes = matrixElim(im, baseBoxes, compImgs)
     else:
         boxes = []
         for compId in compIds:

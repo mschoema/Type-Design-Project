@@ -16,6 +16,9 @@ class BoundingBox():
     def __str__(self):
         return str((self.x, self.y, self.dx, self.dy))
 
+    def __repr__(self):
+        return str(self)
+
     def getSize(self):
         return (self.dx,self.dy)
 
