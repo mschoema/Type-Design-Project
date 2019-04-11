@@ -6,6 +6,7 @@ from scipy.spatial.distance import cdist
 from scipy.ndimage import distance_transform_cdt
 import tensorflow as tf
 import time
+from sklearn.preprocessing import normalize
 
 def dist_from_edge(img):
     I = binary_erosion(img) # Interior mask
@@ -19,10 +20,11 @@ def compute_loss_map(array):
         array = array[0,:,:,0]
     interior = binary_erosion(array)
     invert = np.logical_not(array).astype(int)
-    mult_mask = np.add(np.multiply(-1,array),invert)
+    #mult_mask = np.add(np.multiply(-1,array),invert)
     contour = array - interior
     dist = distance_transform_cdt(np.logical_not(contour).astype(int),metric="taxicab")
-    return np.multiply(dist, mult_mask)
+    #return np.multiply(dist, mult_mask)
+    return dist
 
 def dist_map_loss(y_true,y_pred):
     mult = tf.multiply(tf.abs(y_true),y_pred)
@@ -38,9 +40,11 @@ def main():
     display_array(loss_map)
     display_array(np.where(loss_map == 0, 1, 0))
     
+def main2():
+    save_loss_maps_as_images()
 
 if __name__ == "__main__":
     start = time.time()
-    main()
+    main2()
     end = time.time()
     print("Execution time: " + str(int(end-start)) + " seconds")

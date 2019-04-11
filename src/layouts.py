@@ -1,29 +1,10 @@
 from PIL import Image, ImageChops
 import numpy as np
+from class_definitions import BoundingBox
 
 IMAGES_WIDTH = 1000
 IMAGES_HEIGTH = 1000
 IMAGES_SIZE = (IMAGES_WIDTH, IMAGES_HEIGTH)
-
-class BoundingBox():
-
-    def __init__(self, x, y, dx, dy):
-        self.x = x
-        self.y = y
-        self.dx = dx
-        self.dy = dy
-
-    def __str__(self):
-        return str((self.x, self.y, self.dx, self.dy))
-
-    def __repr__(self):
-        return str(self)
-
-    def getSize(self):
-        return (self.dx,self.dy)
-
-    def getBoxOutline(self):
-        return (self.x, self.y, self.x + self.dx, self.y + self.dy)
 
 layouts = {
     0: [(0,0,1,1)],

@@ -2,12 +2,15 @@ from PIL import Image, ImageChops
 import sys
 import os
 import csv
-from layouts import layouts, applyLayout, BoundingBox, applyPreciseLayout
+from class_definitions import BoundingBox
+from layouts import layouts, applyLayout, applyPreciseLayout
+import sqlite3
+from sqlite_database import openDatabase, closeDatabase
 
 # global variables
+DATABASE_PATH = "../database.db"
 BASE_IMAGES_PATH = ""
 TARGET_PATH = ""
-CHARACTER_DATABASE_PATH = ""
 
 CHARDEF_DIC = {}
 CHAR_DIC = {}
@@ -29,36 +32,32 @@ def createCharDefDic():
     global BASE_COUNT
     global ROUGH_DEF_COUNT
     global PRECISE_DEF_COUNT
-    with open(CHARACTER_DATABASE_PATH) as csvfile:
-        fileReader = csv.reader(csvfile, delimiter=',')
-        count = 0
-        for row in fileReader:
-            count += 1
-            Id = row[0]
-            lid = int(row[1])
-            compsLenght = len(layouts.get(lid))
-            compIds = []
+    conn, cur = openDatabase()
+    chars = cur.execute("Select uid, lid, compsLen, comp1, comp2, comp3, comp4, comp5, pdef from Character").fetchall()
+    for char in chars:
+        uid = char[0]
+        lid = char[1]
+        compsLenght = char[2]
+        compIds = []
+        for i in range(compsLenght):
+            compIds.append(char[3+i])
+        preciseDef = char[8] != None
+        if preciseDef:
+            pdef = cur.execute("Select boxId1, boxId2, boxId3, boxId4, boxId5 from PreciseDef where pdefid = ?", (char[8],)).fetchone()
+            boxes = []
             for i in range(compsLenght):
-                compIds.append(row[i + 2])
-            preciseDef = int(row[compsLenght + 2])
-            if preciseDef == 1:
-                boxes = []
-                for i in range(compsLenght):
-                    x = int(row[1 + 4*i + 2 + compsLenght])
-                    y = int(row[2 + 4*i + 2 + compsLenght])
-                    dx = int(row[3 + 4*i + 2 + compsLenght])
-                    dy = int(row[4 + 4*i + 2 + compsLenght])
-                    box = BoundingBox(x,y,dx,dy)
-                    boxes.append(box)
-                PRECISE_DEF_COUNT += 1
-                charDef = CharDef(lid, compIds, True, boxes)
+                (x,y,dx,dy) = cur.execute("Select x, y, dx, dy from Box where boxId = ?", (pdef[i],)).fetchone()
+                boxes.append(BoundingBox(x,y,dx,dy))
+            PRECISE_DEF_COUNT += 1
+            charDef = CharDef(lid, compIds, True, boxes)
+        else:
+            if lid == 0:
+                BASE_COUNT += 1
             else:
-                if lid == 0:
-                    BASE_COUNT += 1
-                else:
-                    ROUGH_DEF_COUNT += 1
-                charDef = CharDef(lid, compIds)
-            CHARDEF_DIC.update({Id: charDef})
+                ROUGH_DEF_COUNT += 1
+            charDef = CharDef(lid, compIds)
+        CHARDEF_DIC.update({uid: charDef})
+    closeDatabase(conn)
     print("Amount of base characters: ", BASE_COUNT)
     print("Amount of roughly defined characters: ", ROUGH_DEF_COUNT)
     print("Amount of precisely defined characters: ", PRECISE_DEF_COUNT)
@@ -131,27 +130,38 @@ def saveImages():
             else:
                 im.save(TARGET_PATH + "roughDef/" + Id + ".png")
 
+def saveLossMapsAsImages():
+    out_file = "../outputFiles/lossMaps/"
+    conn, cur = openDatabase()
+    uidAndLossMaps = cur.execute("Select uid, lossMap from LossMap").fetchall()
+    for ualm in uidAndLossMaps:
+        uid = ualm[0]
+        arr = ualm[1].astype(float)
+        arr = arr / np.amax(arr)
+        arr = (arr * 255).astype(np.uint8)
+        im = Image.fromarray(arr, mode='L')
+        im.save(out_file + str(uid) + ".png")
+
 
 def createCharacterSet():
     createCharDefDic()
     addBaseImages()
     completeImageDic()
     saveImages()
+    saveLossMapsAsImages()
     print("Done")
 
 def main():
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 3:
         print("Wrong number of arguments, please provide:")
         print("1) a path to the directory containing the images of the base characters")
         print("2) a path to the target directory")
-        print("3) the filename (with path) of the character database")
     else:
         global BASE_IMAGES_PATH
         global TARGET_PATH
         global CHARACTER_DATABASE_PATH
         BASE_IMAGES_PATH = sys.argv[1]
         TARGET_PATH = sys.argv[2]
-        CHARACTER_DATABASE_PATH = sys.argv[3]
         createCharacterSet()
 
 if __name__ == "__main__":

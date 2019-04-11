@@ -1,20 +1,7 @@
 import sqlite3
 import numpy as np
 import io
-import csv
-from PIL import Image
-from layouts import layouts, BoundingBox
-from loss_map import compute_loss_map
-from array_display import display_array
-
-class CharDef:
-    def __init__(self, uid, lid, compsLength, compIds, preciseDef=False, boxes=None):
-        self.uid = uid
-        self.lid = lid
-        self.compsLen = compsLength
-        self.compIds = compIds
-        self.preciseDef = preciseDef
-        self.boxes = boxes
+from class_definitions import BoundingBox, CharDef, ArrayCollection
 
 """
 Converting numpy array to binary and back for insertion in sql
@@ -35,12 +22,6 @@ sqlite3.register_adapter(np.ndarray, adapt_array)
 sqlite3.register_converter("array", convert_array)
 
 DATABASE_PATH = "../database.db"
-CHARCTER_IMAGES_PATH = "../CharacterImages/Regular/"
-CREATE_DATABASE = False
-FILL_DATABASE = False
-COMPUTE_LOSS_MAPS = False
-SHOW_LOSS_MAPS = True
-SHELL = False
 
 def openDatabase():
     conn = sqlite3.connect(DATABASE_PATH, detect_types=sqlite3.PARSE_DECLTYPES)
@@ -89,21 +70,11 @@ def createDatabase():
             dx Integer not null,
             dy Integer not null
         );
-
-        CREATE table if not exists LossMap(
-            uid Text primary key,
-            lossMap array,
-            Foreign key (uid) references Character(uid)
-        );
-
         """)
     closeDatabase(conn)
     print("Done")
 
-def fillDatabase():
-    print("Filling database")
-
-    def insertPreciseDef(charDef):
+def insertPreciseDef(charDef, cur):
         if charDef.preciseDef:
             boxIds = []
             for i in range(5):
@@ -118,118 +89,57 @@ def fillDatabase():
         else:
             return None
 
-    def insertChar(charDef):
-        pdefid = insertPreciseDef(charDef)
-        char = [charDef.uid, charDef.lid, charDef.compsLen]
-        for i in range(5):
-            if i < charDef.compsLen:
-                char.append(charDef.compIds[i])
-            else:
-                char.append(None)
-        char.append(pdefid)
-        cur.execute("Insert Into Character(uid,lid,compsLen, comp1, comp2, comp3, comp4, comp5, pdef) values (?,?,?,?,?,?,?,?,?)", char)
-
-    path_to_csv = "../inputFiles/database.csv"
-    (conn,cur) = openDatabase()
-    with open(path_to_csv) as csvfile:
-        fileReader = csv.reader(csvfile, delimiter=',')
-        for row in fileReader:
-            uid = row[0]
-            lid = int(row[1])
-            compsLength = len(layouts.get(lid))
-            compIds = []
-            for i in range(compsLength):
-                compIds.append(row[i + 2])
-            preciseDef = int(row[compsLength + 2])
-            if preciseDef == 1:
-                boxes = []
-                for i in range(compsLength):
-                    x = int(row[1 + 4*i + 2 + compsLength])
-                    y = int(row[2 + 4*i + 2 + compsLength])
-                    dx = int(row[3 + 4*i + 2 + compsLength])
-                    dy = int(row[4 + 4*i + 2 + compsLength])
-                    box = BoundingBox(x,y,dx,dy)
-                    boxes.append(box)
-                charDef = CharDef(uid, lid, compsLength, compIds, True, boxes)
-            else:
-                charDef = CharDef(uid, lid, compsLength, compIds)
-            insertChar(charDef)
-    closeDatabase(conn)
-    print("Done")
-
-def computeLossMaps():
-    print("Computing loss maps")
-    (conn, _) = openDatabase()
-    conn.row_factory = lambda cursor, row: row[0]
-    cur = conn.cursor()
-    uids = cur.execute("Select uid from Character where lid != 0").fetchall()
-    tot = len(uids)
-    print(str(tot) + " loss maps to compute")
-    for uid in uids:
-        im = Image.open(CHARCTER_IMAGES_PATH + str(uid) + ".png")
-        im = im.convert('1')
-        #im = im.resize((100, 100))
-        arr = np.logical_not(np.asarray(im)).astype(int)
-        lossMap = compute_loss_map(arr)
-        cur.execute("Insert Into LossMap(uid,lossMap) values (?,?)", (uid, lossMap))
-    closeDatabase(conn)
-    print("Done")
-
-def showLossMaps():
-    (conn, _) = openDatabase()
-    uidAndLossMaps = cur.execute("Select uid, lossMap from LossMap").fetchall()
-    print(uidAndLossMaps)
-    uids = []
-    lossMaps = []
-    closeDatabase(conn)
-    print("Enter a unicode to see the loss map.")
-    print("Enter a blank line to exit.")
-    while True:
-        line = input()
-        if line == "":
-            break
-        if line in uids:
-            index = uids.index(line)
-            display_array(lossMaps[index])
-            print("---")
-        else:
-            print("Wrong unicode")
-
-def sqlShell():
+def insertChar(charDef):
     (conn, cur) = openDatabase()
-    buffer = ""
-    print("Enter your SQL commands to execute in sqlite3.")
-    print("Enter a blank line to exit.")
-    while True:
-        line = input()
-        if line == "":
-            break
-        buffer += line
-        if sqlite3.complete_statement(buffer):
-            try:
-                buffer = buffer.strip()
-                cur.execute(buffer)
-
-                if buffer.lstrip().upper().startswith("SELECT"):
-                    print(cur.fetchall())
-            except sqlite3.Error as e:
-                print("An error occurred:", e.args[0])
-            buffer = ""
+    pdefid = insertPreciseDef(charDef, cur)
+    char = [charDef.uid, charDef.lid, charDef.compsLen]
+    for i in range(5):
+        if i < charDef.compsLen:
+            char.append(charDef.compIds[i])
         else:
-            print("Wrong statement")
+            char.append(None)
+    char.append(pdefid)
+    cur.execute("Insert Into Character(uid,lid,compsLen, comp1, comp2, comp3, comp4, comp5, pdef) values (?,?,?,?,?,?,?,?,?)", char)
     closeDatabase(conn)
+
+def getCharDefDic():
+    charDefDic = {}
+    bCount = 0
+    rdCount = 0
+    pdCount = 0
+    (conn, cur) = openDatabase()
+    chars = cur.execute("Select uid, lid, compsLen, comp1, comp2, comp3, comp4, comp5, pdef from Character").fetchall()
+    for char in chars:
+        uid = char[0]
+        lid = char[1]
+        compsLength = char[2]
+        compIds = []
+        for i in range(compsLength):
+            compIds.append(char[3+i])
+        preciseDef = char[8] != None
+        if preciseDef:
+            pdef = cur.execute("Select boxId1, boxId2, boxId3, boxId4, boxId5 from PreciseDef where pdefid = ?", (char[8],)).fetchone()
+            boxes = []
+            for i in range(compsLength):
+                (x,y,dx,dy) = cur.execute("Select x, y, dx, dy from Box where boxId = ?", (pdef[i],)).fetchone()
+                boxes.append(BoundingBox(x,y,dx,dy))
+            pdCount += 1
+            charDef = CharDef(uid, lid, compsLength, compIds, True, boxes)
+        else:
+            if lid == 0:
+                bCount += 1
+            else:
+                rdCount += 1
+            charDef = CharDef(uid, lid, compsLength, compIds)
+        charDefDic.update({uid: charDef})
+    closeDatabase(conn)
+    #print("Amount of base characters: ", bCount)
+    #print("Amount of roughly defined characters: ", rdCount)
+    #print("Amount of precisely defined characters: ", pdCount)
+    return charDefDic
 
 def main():
-    if CREATE_DATABASE:
-        createDatabase()
-    if FILL_DATABASE:
-        fillDatabase()
-    if COMPUTE_LOSS_MAPS:
-        computeLossMaps()
-    if SHOW_LOSS_MAPS:
-        showLossMaps()
-    if SHELL:
-        sqlShell()
+    createDatabase()
 
 if __name__ == '__main__':
     main()

@@ -21,6 +21,7 @@ def pickle_examples(paths, train_path, val_path, train_val_split=0.1):
                 with open(p, 'rb') as f:
                     print("img %s" % p, label)
                     img_bytes = f.read()
+                    print(img_bytes)
                     r = random.random()
                     example = (label, img_bytes)
                     if r < train_val_split:

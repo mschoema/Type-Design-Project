@@ -1,6 +1,6 @@
 import sys
 import csv
-from layouts import layouts, BoundingBox
+from layouts import layouts
 from findPosition_v2 import findBoxes, findBestBox, areSame, matrixElim
 from findPosition_v3 import findBestBoxes
 from PIL import Image
