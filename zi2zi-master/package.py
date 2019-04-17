@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import argparse
 import glob
 import os
-import cPickle as pickle
+import pickle as pickle
 import random
 
 
@@ -21,8 +21,8 @@ def pickle_examples(paths, train_path, val_path, train_val_split=0.1):
                 with open(p, 'rb') as f:
                     print("img %s" % p, label)
                     img_bytes = f.read()
-                    print(img_bytes)
                     r = random.random()
+                    print(r)
                     example = (label, img_bytes)
                     if r < train_val_split:
                         pickle.dump(example, fv)
@@ -40,5 +40,5 @@ args = parser.parse_args()
 if __name__ == "__main__":
     train_path = os.path.join(args.save_dir, "train.obj")
     val_path = os.path.join(args.save_dir, "val.obj")
-    pickle_examples(sorted(glob.glob(os.path.join(args.dir, "*.jpg"))), train_path=train_path, val_path=val_path,
+    pickle_examples(sorted(glob.glob(os.path.join(args.dir, "*.png"))), train_path=train_path, val_path=val_path,
                     train_val_split=args.split_ratio)

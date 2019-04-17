@@ -13,6 +13,10 @@ class CharDef:
     def __repr__(self):
         return str(self)
 
+    def setPreciseDef(self, boxes):
+        self.preciseDef = True
+        self.boxes = boxes
+
 class BoundingBox():
     def __init__(self, x, y, dx, dy):
         self.x = x

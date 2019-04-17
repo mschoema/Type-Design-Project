@@ -22,7 +22,7 @@ SummaryHandle = namedtuple("SummaryHandle", ["d_merged", "g_merged"])
 
 
 class UNet(object):
-    def __init__(self, experiment_dir=None, experiment_id=0, batch_size=16, input_width=250, output_width=250,
+    def __init__(self, experiment_dir=None, experiment_id=0, batch_size=16, input_width=256, output_width=256,
                  generator_dim=64, discriminator_dim=64, L1_penalty=100, Lconst_penalty=15, Ltv_penalty=0.0,
                  Lcategory_penalty=1.0, embedding_num=40, embedding_dim=128, input_filters=1, output_filters=1):
         self.experiment_dir = experiment_dir
@@ -129,8 +129,8 @@ class UNet(object):
             return output
 
     def edge_computation(self, decoded):
-        sigm = tf.divide(tf.add(decoded, tf.constant(1)),tf.constant(2))
-        xor = tf.xor_pool2d2x2(sigm)
+        sigm = tf.divide(tf.add(decoded, tf.constant(1, dtype=tf.float32)),tf.constant(2, dtype=tf.float32))
+        xor = xor_pool2d2x2(sigm)
         return xor
 
     def generator(self, images, embeddings, embedding_ids, inst_norm, is_training, reuse=False):
@@ -579,7 +579,7 @@ class UNet(object):
                 # according to https://github.com/carpedm20/DCGAN-tensorflow
                 # collect all the losses along the way
                 _, batch_g_loss, category_loss, cheat_loss, \
-                const_loss, l1_loss, tv_loss, g_summary = self.sess.run([g_optimizer,
+                const_loss, l1_loss, edge_loss, tv_loss, g_summary = self.sess.run([g_optimizer,
                                                                          loss_handle.g_loss,
                                                                          loss_handle.category_loss,
                                                                          loss_handle.cheat_loss,

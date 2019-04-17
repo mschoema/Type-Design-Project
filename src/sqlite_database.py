@@ -74,20 +74,35 @@ def createDatabase():
     closeDatabase(conn)
     print("Done")
 
-def insertPreciseDef(charDef, cur):
-        if charDef.preciseDef:
-            boxIds = []
-            for i in range(5):
-                if i < charDef.compsLen:
-                    box = charDef.boxes[i]
-                    cur.execute("Insert Into Box(x,y,dx,dy) values (?,?,?,?)", (box.x, box.y, box.dx, box.dy))
-                    boxIds.append(cur.lastrowid)
-                else:
-                    boxIds.append(None)
-            cur.execute("Insert Into PreciseDef(boxId1, boxId2, boxId3, boxId4, boxId5) values (?,?,?,?,?)",boxIds)
-            return cur.lastrowid
+def addPreciseDef(charDef):
+    (conn, cur) = openDatabase()
+    boxIds = []
+    for i in range(5):
+        if i < charDef.compsLen:
+            box = charDef.boxes[i]
+            cur.execute("Insert Into Box(x,y,dx,dy) values (?,?,?,?)", (box.x, box.y, box.dx, box.dy))
+            boxIds.append(cur.lastrowid)
         else:
-            return None
+            boxIds.append(None)
+    cur.execute("Insert Into PreciseDef(boxId1, boxId2, boxId3, boxId4, boxId5) values (?,?,?,?,?)",boxIds)
+    pdefId = cur.lastrowid
+    cur.execute("Update Character set pdef = ? where uid = ?", (pdefId, charDef.uid))
+    closeDatabase(conn)
+
+def insertPreciseDef(charDef, cur):
+    if charDef.preciseDef:
+        boxIds = []
+        for i in range(5):
+            if i < charDef.compsLen:
+                box = charDef.boxes[i]
+                cur.execute("Insert Into Box(x,y,dx,dy) values (?,?,?,?)", (box.x, box.y, box.dx, box.dy))
+                boxIds.append(cur.lastrowid)
+            else:
+                boxIds.append(None)
+        cur.execute("Insert Into PreciseDef(boxId1, boxId2, boxId3, boxId4, boxId5) values (?,?,?,?,?)",boxIds)
+        return cur.lastrowid
+    else:
+        return None
 
 def insertChar(charDef):
     (conn, cur) = openDatabase()
@@ -101,6 +116,33 @@ def insertChar(charDef):
     char.append(pdefid)
     cur.execute("Insert Into Character(uid,lid,compsLen, comp1, comp2, comp3, comp4, comp5, pdef) values (?,?,?,?,?,?,?,?,?)", char)
     closeDatabase(conn)
+
+def getUnicodeList():
+    (conn, cur) = openDatabase()
+    unicodes = cur.execute("Select uid from Character").fetchall()
+    closeDatabase(conn)
+    return [uid[0] for uid in unicodes]
+
+def getCharDef(uid):
+    (conn, cur) = openDatabase()
+    charDefAsList = cur.execute("Select lid, compsLen, comp1, comp2, comp3, comp4, comp5, pdef from Character where uid = ?", (uid,)).fetchone()
+    lid = charDefAsList[0]
+    compsLength = charDefAsList[1]
+    compIds = []
+    for i in range(compsLength):
+            compIds.append(charDefAsList[2+i])
+    preciseDef = charDefAsList[7] != None
+    if preciseDef:
+        pdef = cur.execute("Select boxId1, boxId2, boxId3, boxId4, boxId5 from PreciseDef where pdefid = ?", (charDefAsList[7],)).fetchone()
+        boxes = []
+        for i in range(compsLength):
+            (x,y,dx,dy) = cur.execute("Select x, y, dx, dy from Box where boxId = ?", (pdef[i],)).fetchone()
+            boxes.append(BoundingBox(x,y,dx,dy))
+        charDef = CharDef(uid, lid, compsLength, compIds, True, boxes)
+    else:
+        charDef = CharDef(uid, lid, compsLength, compIds)
+    closeDatabase(conn)
+    return charDef
 
 def getCharDefDic():
     charDefDic = {}

@@ -24,8 +24,8 @@ UPDATE_DATABASE = False
 COMPUTE_AND_IMPORT_ARRAYS = False
 SHOW_ARRAYS = False
 SHELL = False
-IMAGE_WIDTH = 1000
-IMAGE_HEIGHT = 1000
+IMAGE_WIDTH = 256
+IMAGE_HEIGHT = 256
 IMAGE_SIZE = (IMAGE_WIDTH, IMAGE_HEIGHT)
 
 def fillDatabase():
@@ -95,7 +95,7 @@ def computeAndImportArrays(style):
             lid = cDef.lid
             compIds = cDef.compIds
             preciseDef = cDef.preciseDef
-            boxes = cDef.boxes
+            boxes1000 = cDef.boxes 
         except Exception as error:
             print("Error encountered for unicode: ",charDef.uid)
             print("Error message: ", error)
@@ -108,6 +108,14 @@ def computeAndImportArrays(style):
             img = roughImageDic.get(i)
             compImgs.append(img)
         if preciseDef:
+            boxes = []
+            for box1000 in boxes1000:
+                x = int(box1000.x*IMAGE_WIDTH/1000)
+                y = int(box1000.y*IMAGE_HEIGHT/1000)
+                dx = int(box1000.dx*IMAGE_HEIGHT/1000)
+                dy = int(box1000.dy*IMAGE_HEIGHT/1000)
+                box = BoundingBox(x,y,dx,dy)
+                boxes.append(box)
             im = applyPreciseLayout(boxes, compImgs)
         else:
             im = applyLayout(lid,compImgs)
@@ -132,9 +140,8 @@ def computeAndImportArrays(style):
                     # ac.addRoughDef(arr)
                     ac.addRoughDef(roughImage)
                 except Exception as error:
-                    print("")
-                    print("Error encountered for unicode: ",charDef.uid)
-                    print("Error message: ", error)
+                        print("Error encountered for unicode: ",uid)
+                        print("Error message: ", error)
         print("")
 
 
@@ -215,11 +222,8 @@ def main():
         updateDatabase()
     if COMPUTE_AND_IMPORT_ARRAYS:
         styles = sys.argv[1:]
-        sqlite_database.insertStyles(styles)
         for style in styles:
             computeAndImportArrays(style)
-    if SHOW_ARRAYS:
-        showArrays()
     if SHELL:
         sqlShell()
 

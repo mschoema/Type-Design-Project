@@ -11,31 +11,7 @@ from keras.utils import plot_model
 import csv
 from layouts import layouts
 
-def exploreData():
-    dic = {}
-    with open("../inputFiles/database.csv") as csvfile:
-        fileReader = csv.reader(csvfile, delimiter=',')
-        count = 0
-        for row in fileReader:
-            lid = int(row[1])
-            if lid != 0:
-                count += 1
-                compsLenght = len(layouts.get(lid))
-                dic[compsLenght] = dic.get(compsLenght, 0) + 1
-    for k,v in dic.items():
-        print(k, ": ", v*100/count, "%")
-    print("Total amount of characters: ", count)
-
-def loadData():
-    pass
-
-def custom_loss(y_true, y_pred):
-    y1 = y_pred[:,:4]
-    y2 = y_pred[:,4:]
-    x = y_true
-    pass
-
-def CDN_model(n_filters=16, dropout=0.5):
+def NN_model(n_filters=16, dropout=0.5):
     Input_character = Input(shape=(1000,1000,1), name='character')
     Input_component1 = Input(shape=(1000,1000,1), name='component1')
     Input_component2 = Input(shape=(1000,1000,1), name='component2')

@@ -2,8 +2,8 @@ from PIL import Image, ImageChops
 import numpy as np
 from class_definitions import BoundingBox
 
-IMAGES_WIDTH = 1000
-IMAGES_HEIGTH = 1000
+IMAGES_WIDTH = 256
+IMAGES_HEIGTH = 256
 IMAGES_SIZE = (IMAGES_WIDTH, IMAGES_HEIGTH)
 
 layouts = {
@@ -55,13 +55,13 @@ def findBoundingBox(image):
     return BoundingBox(xmin, ymin, xmax-xmin, ymax-ymin)
 
 def findCutout(targetB, charB):
-    if targetB.dx == 1000:
+    if targetB.dx == IMAGES_WIDTH:
         x = 0
-        dx = 1000
+        dx = IMAGES_WIDTH
     else:
         x = charB.x
         dx = charB.dx
-        while dx < targetB.dx - 1 and x > 0 and x < 999:
+        while dx < targetB.dx - 1 and x > 0 and x < IMAGES_WIDTH-1:
             x = x-1
             dx = dx+2
         if dx == targetB.dx - 1 and x > 0:
@@ -71,16 +71,16 @@ def findCutout(targetB, charB):
             dx = dx+1
         if x == 0 and dx < targetB.dx:
             dx = targetB.dx
-        elif x == 999 and dx < targetB.dx:
+        elif x == IMAGES_WIDTH-1 and dx < targetB.dx:
             dx = targetB.dx
-            x = 999 - dx
-    if targetB.dy == 1000:
+            x = IMAGES_WIDTH-1 - dx
+    if targetB.dy == IMAGES_HEIGTH:
         y = 0
-        dy = 1000
+        dy = IMAGES_HEIGTH
     else:
         y = charB.y
         dy = charB.dy
-        while dy < targetB.dy - 1 and y > 0 and y < 999:
+        while dy < targetB.dy - 1 and y > 0 and y < IMAGES_HEIGTH-1:
             y = y-1
             dy = dy+2
         if dy == targetB.dy - 1 and y > 0:
@@ -90,9 +90,9 @@ def findCutout(targetB, charB):
             dy = dy+1
         if y == 0 and dy < targetB.dy:
             dy = targetB.dy
-        elif y == 999 and dy < targetB.dy:
+        elif y == IMAGES_HEIGTH-1 and dy < targetB.dy:
             dy = targetB.dy
-            y = 999 - dy
+            y = IMAGES_HEIGTH-1 - dy
     return (x,y,x+dx,y+dy) 
 
 def needsResizing(targetB, charB):
