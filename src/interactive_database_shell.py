@@ -60,9 +60,9 @@ def handleUnicode(uid):
         buffer = ""
         while True:
             if (print_header):
-                print("What do you want to do with this character")
-                print("Enter 1 to add or change a precise definition.")
-                print("Enter a blank line to choose another character.")
+                print("What do you want to do with this character?")
+                print("- Enter 1 to add or change a precise definition.")
+                print("- Enter a blank line to choose another character.")
             else:
                 print_header = True
             line = input()
