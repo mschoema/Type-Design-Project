@@ -2,3 +2,4 @@
 outputFiles/
 characterImages/
 src/__pycache__/
+*.pyc
