@@ -107,8 +107,7 @@ def xor_pool2d2x2(x, padding='SAME', name='pool'):
   mini = tf.minimum(tf.minimum(sub_00,sub_01),tf.minimum(sub_10,sub_11))
 
   sub = tf.subtract(maxi, mini)
-  x = tf.where(sub > 0.5, tf.ones(shape), tf.zeros(shape))
-  x = tf.cast(x, dtype=tf.int64)
+  x = tf.where(sub > 0.2, tf.ones(shape), tf.zeros(shape))
   return x
 
 def xor_pool2d3x3(x, padding='SAME', name='pool'):
@@ -156,10 +155,14 @@ def xor_pool2d3x3(x, padding='SAME', name='pool'):
   mini = tf.minimum(tf.minimum(tf.minimum(tf.minimum(sub_00,sub_01),tf.minimum(sub_10,sub_11)),tf.minimum(tf.minimum(sub_20,sub_21),tf.minimum(sub_12,sub_22))),sub_02)
 
   sub = tf.subtract(maxi, mini)
-  y = tf.where(sub > 0.5, tf.ones(shape), tf.zeros(shape))
+  y = tf.where(sub > 0.2, tf.ones(shape), tf.zeros(shape))
   y = tf.multiply(y,x)
   return y
 
+@tf.custom_gradient
 def dist_map_loss(y_true,y_pred):
-    mult = tf.multiply(tf.abs(y_true),y_pred)
-    return tf.divide(tf.reduce_sum(mult), tf.cast(tf.count_nonzero(mult).eval(), dtype=tf.float32))
+  mult = tf.multiply(tf.abs(y_true),y_pred)
+  loss = tf.reduce_mean(mult)
+  def grad(dy):
+    return tf.zeros_like(y_true), y_true
+  return loss, grad

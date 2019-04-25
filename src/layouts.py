@@ -2,8 +2,8 @@ from PIL import Image, ImageChops
 import numpy as np
 from class_definitions import BoundingBox
 
-IMAGES_WIDTH = 256
-IMAGES_HEIGTH = 256
+IMAGES_WIDTH = 1000
+IMAGES_HEIGTH = 1000
 IMAGES_SIZE = (IMAGES_WIDTH, IMAGES_HEIGTH)
 
 layouts = {

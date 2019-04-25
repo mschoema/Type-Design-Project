@@ -148,7 +148,7 @@ def createCharacterSet():
     addBaseImages()
     completeImageDic()
     saveImages()
-    saveLossMapsAsImages()
+    #saveLossMapsAsImages()
     print("Done")
 
 def main():

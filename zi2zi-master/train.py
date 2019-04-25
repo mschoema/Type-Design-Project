@@ -10,11 +10,11 @@ import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 parser = argparse.ArgumentParser(description='Train')
-parser.add_argument('--experiment_dir', dest='experiment_dir', required=True,
+parser.add_argument('--experiment_dir', dest='experiment_dir', default="../outputFiles/experiment/",
                     help='experiment directory, data, samples,checkpoints,etc')
 parser.add_argument('--experiment_id', dest='experiment_id', type=int, default=0,
                     help='sequence id for the experiments you prepare to run')
-parser.add_argument('--image_size', dest='image_size', type=int, default=250,
+parser.add_argument('--image_size', dest='image_size', type=int, default=256,
                     help="size of your input and output image")
 parser.add_argument('--L1_penalty', dest='L1_penalty', type=int, default=100, help='weight for L1 loss')
 parser.add_argument('--Lconst_penalty', dest='Lconst_penalty', type=int, default=15, help='weight for const loss')

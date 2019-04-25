@@ -199,7 +199,7 @@ def build_model(is_training=True):
         fake_B, encoded_real_A, edges_fake_B, all_edges = generator(real_A, is_training=is_training)
 
         # Edge loss of generated images
-        edge_loss = dist_map_loss(loss_maps, edges_fake_B)*0.5 + tf.reduce_mean(tf.abs(fake_B - real_B))*1
+        edge_loss = dist_map_loss(loss_maps, edges_fake_B)*1 + tf.reduce_mean(tf.abs(fake_B - real_B))*0
 
         edge_loss_summary = tf.summary.scalar("edge_loss", edge_loss)
         g_merged_summary = tf.summary.merge([edge_loss_summary])
@@ -234,13 +234,13 @@ def validate_model(sess, sample_dir, val_iter, input_handle, loss_handle, eval_h
         fake_imgs, real_imgs, edge_images, all_edges, edge_loss = generate_fake_samples(sess, input_handle, loss_handle, eval_handle, images)
         print("Sample: edge_loss: %.5f" % (edge_loss))
 
-        merged_all_edge_images = merge(np.round(all_edges), [BATCH_SIZE, 1])
-        merged_edge_images = merge(np.round(edge_images), [BATCH_SIZE, 1])
+        # merged_all_edge_images = merge(np.round(all_edges), [BATCH_SIZE, 1])
+        # merged_edge_images = merge(np.round(edge_images), [BATCH_SIZE, 1])
         merged_fake_images = merge(np.round(scale_back(fake_imgs)), [BATCH_SIZE, 1])
         merged_real_images = merge(scale_back(real_imgs), [BATCH_SIZE, 1])
-        merged_pair = np.concatenate([merged_real_images, merged_fake_images, merged_edge_images, merged_all_edge_images], axis=1)
+        merged_pair = np.concatenate([merged_real_images, merged_fake_images], axis=1)
 
-        model_sample_dir = os.path.join(sample_dir, "model05_1")
+        model_sample_dir = os.path.join(sample_dir, "model1_0")
         if not os.path.exists(model_sample_dir):
             os.makedirs(model_sample_dir)
 

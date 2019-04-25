@@ -33,8 +33,8 @@ def dist_map_loss(y_true,y_pred):
     return tf.divide(tf.reduce_sum(mult), tf.cast(tf.count_nonzero(mult).eval(), dtype=tf.float32))
 
 def main():
-    im = Image.open("../CharacterImages/4e00.png")
-    im = im.resize((100, 100))
+    im = Image.open("../CharacterImages/Regular/4eae.png")
+    im = im.resize((256, 256))
     arr = np.logical_not(np.asarray(im)).astype(int)
     loss_map = compute_loss_map(arr)
     display_array(loss_map)
@@ -45,6 +45,6 @@ def main2():
 
 if __name__ == "__main__":
     start = time.time()
-    main2()
+    main()
     end = time.time()
     print("Execution time: " + str(int(end-start)) + " seconds")

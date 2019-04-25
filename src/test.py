@@ -69,6 +69,7 @@ def main():
     arr2 = arrays[:,:,2]
     display_array(arr2)
     arr = arr1[np.newaxis,:,:,np.newaxis]
+    arr2 = arr2[np.newaxis,:,:,np.newaxis]
     with tf.Session() as sess:
         #arr = np.random.randint(2,size=(1,256,256,1))
         out_tensor = tf.Variable(arr,dtype=tf.float32)
@@ -76,7 +77,7 @@ def main():
         loss_tensor = tf.Variable(arr2,dtype=tf.float32)
         sess.run(loss_tensor.initializer)
         out_tensor = (-1.*out_tensor + 1.)/2.
-        edge_tensor = xor_pool2d3x3(out_tensor)
+        edge_tensor, _ = xor_pool2d3x3(out_tensor)
         edge_arr = edge_tensor.eval()
         print(np.min(edge_arr))
         print(np.max(edge_arr))
@@ -84,9 +85,12 @@ def main():
         loss = dist_map_loss(loss_tensor,edge_tensor)
         print(loss.eval())
         grad_tensor = tf.gradients(loss, [out_tensor])[0]
+        grad_tensor2 = tf.gradients(loss, [edge_tensor])[0]
         grad_arr = grad_tensor.eval()
+        grad_arr2 = grad_tensor2.eval()
         print(np.min(grad_arr))
         print(np.max(grad_arr))
+        display_array(grad_arr2)
         display_array(grad_arr)
 
 if __name__ == "__main__":

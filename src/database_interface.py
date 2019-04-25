@@ -19,13 +19,13 @@ DATABASE_PATH = "../database.db"
 TEXT_DATABASE_PATH = "../inputFiles/database.txt"
 CHARACTER_IMAGES_PATH = "../CharacterImages/"
 OUTPUT_PATH = "../outputFiles/"
-FILL_DATABASE = True
+FILL_DATABASE = False
 UPDATE_DATABASE = False
-COMPUTE_AND_IMPORT_ARRAYS = False
+COMPUTE_AND_IMPORT_ARRAYS = True
 SHOW_ARRAYS = False
 SHELL = False
-IMAGE_WIDTH = 256
-IMAGE_HEIGHT = 256
+IMAGE_WIDTH = 1000
+IMAGE_HEIGHT = 1000
 IMAGE_SIZE = (IMAGE_WIDTH, IMAGE_HEIGHT)
 
 def fillDatabase():
@@ -170,22 +170,32 @@ def computeAndImportArrays(style):
     roughImageDic, arrayDic = getBaseImages(style)
     addRoughDefArrays()
     addLossMapArrays()
+    print("Saving images")
     for uid, ac in arrayDic.items():
         if ac.isComplete():
             images = [ac.character, ac.roughDefinition, ac.lossMap]
-            widths, heights = zip(*(i.size for i in images))
 
-            total_width = sum(widths)
-            max_height = max(heights)
+            images[1].save(OUTPUT_PATH + "/rough_1000/" + ac.style + "_" + ac.uid + ".png")
+            images[0].save(OUTPUT_PATH + "/origin_1000/" + ac.style + "_" + ac.uid + ".png")
+            images[2].save(OUTPUT_PATH + "/lossmap_1000/" + ac.style + "_" + ac.uid + ".png")
 
-            new_im = Image.new('L', (total_width, max_height))
+            images[1].save(OUTPUT_PATH + ac.style + "/rough_1000/" + ac.uid + ".png")
+            images[0].save(OUTPUT_PATH + ac.style + "/origin_1000/" + ac.uid + ".png")
+            images[2].save(OUTPUT_PATH + ac.style + "/lossmap_1000/" + ac.uid + ".png")
 
-            x_offset = 0
-            for im in images:
-              new_im.paste(im, (x_offset,0))
-              x_offset += im.size[0]
+            # widths, heights = zip(*(i.size for i in images))
 
-            new_im.save(OUTPUT_PATH + ac.style + "/" + ac.uid + ".png")
+            # total_width = sum(widths)
+            # max_height = max(heights)
+
+            # new_im = Image.new('L', (total_width, max_height))
+
+            # x_offset = 0
+            # for im in images:
+            #   new_im.paste(im, (x_offset,0))
+            #   x_offset += im.size[0]
+
+            # new_im.save(OUTPUT_PATH + ac.style + "/" + ac.uid + ".png")
             # sqlite_database.insertArrayCollection(ac)
         else:
             ac.printIncomplete()
@@ -222,7 +232,25 @@ def main():
         updateDatabase()
     if COMPUTE_AND_IMPORT_ARRAYS:
         styles = sys.argv[1:]
+        rough_directory = os.path.dirname('../outputFiles/rough_1000/')
+        origin_directory = os.path.dirname('../outputFiles/origin_1000/')
+        lossmap_directory = os.path.dirname('../outputFiles/lossmap_1000/')
+        if not os.path.exists(rough_directory):
+            os.makedirs(rough_directory)
+        if not os.path.exists(origin_directory):
+            os.makedirs(origin_directory)
+        if not os.path.exists(lossmap_directory):
+            os.makedirs(lossmap_directory)
         for style in styles:
+            rough_directory = os.path.dirname('../outputFiles/{}/rough_1000/'.format(style))
+            origin_directory = os.path.dirname('../outputFiles/{}/origin_1000/'.format(style))
+            lossmap_directory = os.path.dirname('../outputFiles/{}/lossmap_1000/'.format(style))
+            if not os.path.exists(rough_directory):
+                os.makedirs(rough_directory)
+            if not os.path.exists(origin_directory):
+                os.makedirs(origin_directory)
+            if not os.path.exists(lossmap_directory):
+                os.makedirs(lossmap_directory)
             computeAndImportArrays(style)
     if SHELL:
         sqlShell()
