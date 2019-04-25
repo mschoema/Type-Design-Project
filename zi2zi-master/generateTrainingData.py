@@ -56,6 +56,9 @@ if __name__=="__main__":
     lossMapConvertInPath = args.lossMapConvertInPath+"*.png"
     lossMapConvertOutPath = args.lossMapConvertOutPath
     trainPath = args.trainPath
+    train_dir = os.path.dirname(trainPath)
+    if not os.path.exists(train_dir):
+        os.makedirs(train_dir)
 
     convertAllpng(roughConvertInPath, roughConvertOutPath)
     convertAllpng(originConvertInPath, originConvertOutPath)

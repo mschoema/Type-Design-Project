@@ -139,7 +139,7 @@ class UNet(object):
         local_embeddings = tf.reshape(local_embeddings, [self.batch_size, 1, 1, self.embedding_dim])
         embedded = tf.concat([e8, local_embeddings], 3)
         output = self.decoder(embedded, enc_layers, embedding_ids, inst_norm, is_training=is_training, reuse=reuse)
-        edges = edge_computation(output)
+        edges = self.edge_computation(output)
         return output, e8, edges
 
     def discriminator(self, image, is_training, reuse=False):

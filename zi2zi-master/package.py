@@ -19,10 +19,10 @@ def pickle_examples(paths, train_path, val_path, train_val_split=0.1):
             for p in paths:
                 label = int(os.path.basename(p).split("_")[0])
                 with open(p, 'rb') as f:
-                    print("img %s" % p, label)
+                    # print("img %s" % p, label)
                     img_bytes = f.read()
                     r = random.random()
-                    print(r)
+                    # print(r)
                     example = (label, img_bytes)
                     if r < train_val_split:
                         pickle.dump(example, fv)
@@ -38,6 +38,9 @@ parser.add_argument('--split_ratio', type=float, default=0.1, dest='split_ratio'
 args = parser.parse_args()
 
 if __name__ == "__main__":
+    save_dir = os.path.dirname(args.save_dir)
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
     train_path = os.path.join(args.save_dir, "train.obj")
     val_path = os.path.join(args.save_dir, "val.obj")
     pickle_examples(sorted(glob.glob(os.path.join(args.dir, "*.png"))), train_path=train_path, val_path=val_path,

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 from __future__ import absolute_import
-import cPickle as pickle
+import pickle
 import numpy as np
 import random
 import os
@@ -31,7 +31,7 @@ class PickledImageProvider(object):
             return examples
 
 
-def get_batch_iter(examples, batch_size):
+def get_batch_iter(examples, batch_size, augment):
     # the transpose ops requires deterministic
     # batch size, thus comes the padding
     padded = pad_seq(examples, batch_size)

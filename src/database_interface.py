@@ -17,7 +17,7 @@ Converting numpy array to binary and back for insertion in sql
 
 DATABASE_PATH = "../database.db"
 TEXT_DATABASE_PATH = "../inputFiles/database.txt"
-CHARACTER_IMAGES_PATH = "../CharacterImages/"
+CHARACTER_IMAGES_PATH = "../characterImages/"
 OUTPUT_PATH = "../outputFiles/"
 FILL_DATABASE = False
 UPDATE_DATABASE = False

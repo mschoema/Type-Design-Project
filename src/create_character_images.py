@@ -1,4 +1,5 @@
-import matplotlib.pyplot as plt
+# _*_ coding: utf-8 _*_
+
 import os
 from PIL import Image, ImageFont, ImageDraw, ImageChops
 
@@ -9,7 +10,7 @@ def getFontImage(text,size,style,font,y_offset):
     im=Image.new("RGB",(size,size),(255,255,255))
     dr=ImageDraw.Draw(im)
 
-    font=ImageFont.truetype(os.path.join("./",style,font),size)
+    font=ImageFont.truetype(os.path.join("../inputFiles/",style,font),size)
     dr.text((0,y_offset),text,font=font,fill="#000000")
     im = im.convert('1')
     return im
@@ -27,7 +28,7 @@ def main():
         characters.append(chr(i))
 
     size = 1000
-    fonts = ["HYQiHei-25JF.otf", "HanYiXiXingKaiJian-1.ttf", "Kaiti_2.ttf", "SourceHanSansCN-Regular.otf", "HYXinRenWenSongW-1.otf","SourceHanSerifCN-Heavy-4.otf"]
+    fonts = ["HYQiHei-25JF.otf", "HanYiXiXingKaiJian-1.ttf", "Kaiti_2.TTF", "SourceHanSansCN-Regular.otf", "HYXinRenWenSongW-1.otf","SourceHanSerifCN-Heavy-4.otf"]
     styles = ["Heiti", "Kaiti", "Kaiti", "Regular", "Songti", "Songti"]
     adds = ["_2", "_1", "_2", "", "_1", "_2"]
     offsets = [-70, 0, -20, 0, -60, -260]
@@ -43,11 +44,13 @@ def main():
             os.makedirs(write_directory)
 
     for i in range(len(fonts)):
+        if (i != 2):
+            continue
         font = fonts[i]
         style = styles[i]
         add = adds[i]
         y_offset = offsets[i]
-        for char in char_sorted:
+        for char in characters:
             unicode = takeUnicode(char)[2:] 
             try:
                 im = getFontImage(char,size,style,font,y_offset)
