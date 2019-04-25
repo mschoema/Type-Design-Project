@@ -372,8 +372,8 @@ class UNet(object):
                                                 feed_dict={
                                                     input_handle.real_data: input_images,
                                                     input_handle.embedding_ids: embedding_ids,
-                                                    input_handle.no_target_data: input_images,
-                                                    input_handle.no_target_ids: embedding_ids
+                                                    input_handle.no_target_data: input_images[:2],
+                                                    input_handle.no_target_ids: embedding_ids[:2]
                                                 })
         return fake_images, real_images, d_loss, g_loss, l1_loss
 
@@ -563,8 +563,8 @@ class UNet(object):
                                                                real_data: batch_images,
                                                                embedding_ids: labels,
                                                                learning_rate: current_lr,
-                                                               no_target_data: batch_images,
-                                                               no_target_ids: shuffled_ids
+                                                               no_target_data: batch_images[:2],
+                                                               no_target_ids: shuffled_ids[:2]
                                                            })
                 # Optimize G
                 _, batch_g_loss = self.sess.run([g_optimizer, loss_handle.g_loss],
@@ -572,8 +572,8 @@ class UNet(object):
                                                     real_data: batch_images,
                                                     embedding_ids: labels,
                                                     learning_rate: current_lr,
-                                                    no_target_data: batch_images,
-                                                    no_target_ids: shuffled_ids
+                                                    no_target_data: batch_images[:2],
+                                                    no_target_ids: shuffled_ids[:2]
                                                 })
                 # magic move to Optimize G again
                 # according to https://github.com/carpedm20/DCGAN-tensorflow
@@ -592,8 +592,8 @@ class UNet(object):
                                                                             real_data: batch_images,
                                                                             embedding_ids: labels,
                                                                             learning_rate: current_lr,
-                                                                            no_target_data: batch_images,
-                                                                            no_target_ids: shuffled_ids
+                                                                            no_target_data: batch_images[:2],
+                                                                            no_target_ids: shuffled_ids[:2]
                                                                         })
                 passed = time.time() - start_time
                 log_format = "Epoch: [%2d], [%4d/%4d] time: %4.4f, d_loss: %.5f, g_loss: %.5f, " + \
