@@ -77,21 +77,29 @@ def main():
         loss_tensor = tf.Variable(arr2,dtype=tf.float32)
         sess.run(loss_tensor.initializer)
         out_tensor = (-1.*out_tensor + 1.)/2.
-        edge_tensor, _ = xor_pool2d3x3(out_tensor)
+        edge_tensor = xor_pool2d3x3(out_tensor)
+        print(edge_tensor.shape)
+        up = tf.roll(edge_tensor, shift=20, axis=1)
+        print(type(edge_tensor))
         edge_arr = edge_tensor.eval()
+        up_arr = up.eval()
         print(np.min(edge_arr))
         print(np.max(edge_arr))
         display_array(edge_arr)
+        display_array(up_arr)
         loss = dist_map_loss(loss_tensor,edge_tensor)
         print(loss.eval())
         grad_tensor = tf.gradients(loss, [out_tensor])[0]
         grad_tensor2 = tf.gradients(loss, [edge_tensor])[0]
+        grad_tensor3 = tf.gradients(edge_tensor, [out_tensor])[0]
         grad_arr = grad_tensor.eval()
         grad_arr2 = grad_tensor2.eval()
+        grad_arr3 = grad_tensor3.eval()
         print(np.min(grad_arr))
         print(np.max(grad_arr))
         display_array(grad_arr2)
         display_array(grad_arr)
+        display_array(grad_arr3)
 
 if __name__ == "__main__":
     start = time.time()

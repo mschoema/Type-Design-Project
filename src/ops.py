@@ -111,8 +111,9 @@ def xor_pool2d2x2(x, padding='SAME', name='pool'):
   x = tf.where(sub > 0.5, tf.ones(shape), tf.zeros(shape))
   return x, x
 
+@tf.custom_gradient
 def xor_pool2d3x3(x, padding='SAME', name='pool'):
-
+  x = tf.round(x)
   batch_size, height, width, num_channels = x.get_shape().as_list()
   shape = (batch_size, height, width, num_channels)
   pad_bottom = height%2
@@ -126,7 +127,7 @@ def xor_pool2d3x3(x, padding='SAME', name='pool'):
   offsets_y = tf.range(1, height+1, 1)
   offsets_x = tf.range(1, width+1, 1)
 
-  y = tf.pad(y, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT", constant_values=1)
+  y = tf.pad(y, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT", constant_values=0)
 
   sub_y0 = tf.gather(y, offsets_y, axis=1)
   sub_y1 = tf.gather(y, offsets_y + 1, axis=1)
@@ -159,7 +160,24 @@ def xor_pool2d3x3(x, padding='SAME', name='pool'):
   sub = tf.subtract(maxi, mini)
   y = tf.where(sub > 0.2, tf.ones(shape), tf.zeros(shape))
   out = tf.multiply(y,x)
-  return out, x
+
+  def grad(dy):
+    y_00 = tf.roll(out, shift=[-1,-1], axis=[1,2])
+    y_01 = tf.roll(out, shift=[-1,0], axis=[1,2])
+    y_02 = tf.roll(out, shift=[-1,1], axis=[1,2])
+    y_0 = tf.add(tf.add(y_00, y_01), y_02)
+    y_10 = tf.roll(out, shift=[0,-1], axis=[1,2])
+    y_11 = out*2
+    y_12 = tf.roll(out, shift=[0,1], axis=[1,2])
+    y_1 = tf.add(tf.add(y_10, y_11), y_12)
+    y_20 = tf.roll(out, shift=[1,-1], axis=[1,2])
+    y_21 = tf.roll(out, shift=[1,0], axis=[1,2])
+    y_22 = tf.roll(out, shift=[1,1], axis=[1,2])
+    y_2 = tf.add(tf.add(y_20, y_21), y_22)
+
+    y_out = tf.add(tf.add(y_0, y_1), y_2) / 2
+    return tf.multiply(dy,y_out)
+  return out, grad
 
 @tf.custom_gradient
 def dist_map_loss(y_true,y_pred):

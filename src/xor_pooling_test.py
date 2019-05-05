@@ -21,7 +21,7 @@ LOSS_DEPTH = 1
 
 LossHandle = namedtuple("LossHandle", ["edge_loss"])
 InputHandle = namedtuple("InputHandle", ["real_data"])
-EvalHandle = namedtuple("EvalHandle", ["encoder", "generator", "target", "source", "edges", "all_edges"])
+EvalHandle = namedtuple("EvalHandle", ["encoder", "generator", "target", "source", "edges", "out_rescaled"])
 SummaryHandle = namedtuple("SummaryHandle", ["g_merged"])
 
 class PickledImageProvider(object):
@@ -169,7 +169,7 @@ def decoder(encoded, encoding_layers, is_training, reuse=False):
 
 def edge_computation(decoded):
     sigm = (-1.*decoded + 1.)/2.
-    xor, all_edges = xor_pool2d3x3(sigm)
+    xor = xor_pool2d3x3(sigm)
     return xor, sigm
 
 def retrieve_generator_vars():
@@ -180,8 +180,8 @@ def retrieve_generator_vars():
 def generator(images, is_training, reuse=False):
     e8, enc_layers = encoder(images, is_training=is_training, reuse=reuse)
     output = decoder(e8, enc_layers, is_training=is_training, reuse=reuse)
-    edges, all_edges = edge_computation(output)
-    return output, e8, edges, all_edges
+    edges, out_rescaled = edge_computation(output)
+    return output, e8, edges, out_rescaled
 
 def build_model(is_training=True):
         real_data = tf.placeholder(tf.float32,
@@ -196,7 +196,7 @@ def build_model(is_training=True):
 
         loss_maps = real_data[:, :, :, INPUT_FILTERS + OUTPUT_FILTERS:INPUT_FILTERS + OUTPUT_FILTERS + LOSS_DEPTH]
 
-        fake_B, encoded_real_A, edges_fake_B, all_edges = generator(real_A, is_training=is_training)
+        fake_B, encoded_real_A, edges_fake_B, out_rescaled = generator(real_A, is_training=is_training)
 
         # Edge loss of generated images
         edge_loss = dist_map_loss(loss_maps, edges_fake_B)*1 + tf.reduce_mean(tf.abs(fake_B - real_B))*0
@@ -213,34 +213,34 @@ def build_model(is_training=True):
                                  target=real_B,
                                  source=real_A,
                                  edges=edges_fake_B,
-                                 all_edges=all_edges)
+                                 out_rescaled=out_rescaled)
 
         summary_handle = SummaryHandle(g_merged=g_merged_summary)
 
         return input_handle, loss_handle, eval_handle, summary_handle
 
 def generate_fake_samples(sess, input_handle, loss_handle, eval_handle, input_images):
-        fake_images, real_images, edge_images, all_edges, \
+        fake_images, real_images, edge_images, out_rescaled, \
         edge_loss = sess.run([eval_handle.generator,
                                  eval_handle.target,
                                  eval_handle.edges,
-                                 eval_handle.all_edges,
+                                 eval_handle.out_rescaled,
                                  loss_handle.edge_loss],
                                 feed_dict={input_handle.real_data: input_images})
-        return fake_images, real_images, edge_images, all_edges, edge_loss
+        return fake_images, real_images, edge_images, out_rescaled, edge_loss
 
 def validate_model(sess, sample_dir, val_iter, input_handle, loss_handle, eval_handle, epoch, step):
         images = next(val_iter)
-        fake_imgs, real_imgs, edge_images, all_edges, edge_loss = generate_fake_samples(sess, input_handle, loss_handle, eval_handle, images)
+        fake_imgs, real_imgs, edge_images, out_rescaled, edge_loss = generate_fake_samples(sess, input_handle, loss_handle, eval_handle, images)
         print("Sample: edge_loss: %.5f" % (edge_loss))
 
-        # merged_all_edge_images = merge(np.round(all_edges), [BATCH_SIZE, 1])
-        # merged_edge_images = merge(np.round(edge_images), [BATCH_SIZE, 1])
+        merged_out_rescaled_images = merge(np.round(out_rescaled), [BATCH_SIZE, 1])
+        merged_edge_images = merge(np.round(edge_images), [BATCH_SIZE, 1])
         merged_fake_images = merge(np.round(scale_back(fake_imgs)), [BATCH_SIZE, 1])
         merged_real_images = merge(scale_back(real_imgs), [BATCH_SIZE, 1])
-        merged_pair = np.concatenate([merged_real_images, merged_fake_images], axis=1)
+        merged_pair = np.concatenate([merged_real_images, merged_fake_images, merged_out_rescaled_images, merged_edge_images], axis=1)
 
-        model_sample_dir = os.path.join(sample_dir, "model1_0")
+        model_sample_dir = os.path.join(sample_dir, "model1_0.v3")
         if not os.path.exists(model_sample_dir):
             os.makedirs(model_sample_dir)
 
@@ -260,7 +260,7 @@ def train(sess, input_handle, loss_handle, eval_handle, summary_handle, lr=0.000
         total_batches = data_provider.compute_total_batch_num(BATCH_SIZE)
         val_batch_iter = data_provider.get_val_iter(BATCH_SIZE)
 
-        experiment_dir = "../outputFiles/"
+        experiment_dir = "../outputFiles/experiment/"
         checkpoint_dir = os.path.join(experiment_dir, "checkpoint")
         if not os.path.exists(checkpoint_dir):
                 os.makedirs(checkpoint_dir)
@@ -310,7 +310,7 @@ def main():
 
     with tf.Session(config=config) as sess:
         input_handle, loss_handle, eval_handle, summary_handle = build_model()
-        train(sess, input_handle, loss_handle, eval_handle, summary_handle, lr=0.0002, epoch=50, schedule=10, sample_steps=5)
+        train(sess, input_handle, loss_handle, eval_handle, summary_handle, lr=0.0008, epoch=200, schedule=5, sample_steps=5)
 
 if __name__ == "__main__":
     main()
