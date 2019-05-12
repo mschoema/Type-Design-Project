@@ -162,21 +162,21 @@ def xor_pool2d3x3(x, padding='SAME', name='pool'):
   out = tf.multiply(y,x)
 
   def grad(dy):
-    y_00 = tf.roll(out, shift=[-1,-1], axis=[1,2])
-    y_01 = tf.roll(out, shift=[-1,0], axis=[1,2])
-    y_02 = tf.roll(out, shift=[-1,1], axis=[1,2])
-    y_0 = tf.add(tf.add(y_00, y_01), y_02)
-    y_10 = tf.roll(out, shift=[0,-1], axis=[1,2])
-    y_11 = out*2
-    y_12 = tf.roll(out, shift=[0,1], axis=[1,2])
-    y_1 = tf.add(tf.add(y_10, y_11), y_12)
-    y_20 = tf.roll(out, shift=[1,-1], axis=[1,2])
-    y_21 = tf.roll(out, shift=[1,0], axis=[1,2])
-    y_22 = tf.roll(out, shift=[1,1], axis=[1,2])
-    y_2 = tf.add(tf.add(y_20, y_21), y_22)
+    # y_00 = tf.roll(out, shift=[-1,-1], axis=[1,2])
+    # y_01 = tf.roll(out, shift=[-1,0], axis=[1,2])
+    # y_02 = tf.roll(out, shift=[-1,1], axis=[1,2])
+    # y_0 = tf.add(tf.add(y_00, y_01), y_02)
+    # y_10 = tf.roll(out, shift=[0,-1], axis=[1,2])
+    # y_11 = out*2
+    # y_12 = tf.roll(out, shift=[0,1], axis=[1,2])
+    # y_1 = tf.add(tf.add(y_10, y_11), y_12)
+    # y_20 = tf.roll(out, shift=[1,-1], axis=[1,2])
+    # y_21 = tf.roll(out, shift=[1,0], axis=[1,2])
+    # y_22 = tf.roll(out, shift=[1,1], axis=[1,2])
+    # y_2 = tf.add(tf.add(y_20, y_21), y_22)
 
-    y_out = tf.add(tf.add(y_0, y_1), y_2) / 2
-    return tf.multiply(dy,y_out)
+    # y_out = tf.add(tf.add(y_0, y_1), y_2) / 2
+    return tf.multiply(dy,out)
   return out, grad
 
 @tf.custom_gradient

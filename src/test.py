@@ -59,47 +59,123 @@ def process(img):
     finally:
         img.close()
 
+def np_xor_pooling(x):
+    x = np.round(x)
+    shape = x.shape
+    batch_size, height, width, num_channels = shape
+    pad_bottom = height%2
+    pad_right = width%2
+    height_div2 = height + pad_bottom
+    width_div2 = width + pad_right
+    y = np.pad(x, ((0, 0), (0, pad_bottom), (0, pad_right), (0, 0)), "constant")
+
+    _, height, width, _ = y.shape
+    offsets_y = np.arange(1, height+1, 1)
+    offsets_x = np.arange(1, width+1, 1)
+
+    y = np.pad(y, ((0, 0), (1, 1), (1, 1), (0, 0)), "constant")
+
+    sub_y0 = np.take(y, offsets_y, axis=1)
+    sub_y1 = np.take(y, offsets_y + 1, axis=1)
+    sub_y2 = np.take(y, offsets_y - 1, axis=1)
+
+    sub_00 = np.take(sub_y0, offsets_x, axis=2)
+    sub_00 = np.reshape(sub_00, shape)
+    sub_01 = np.take(sub_y0, offsets_x + 1, axis=2)
+    sub_01 = np.reshape(sub_01, shape)
+    sub_02 = np.take(sub_y0, offsets_x - 1, axis=2)
+    sub_02 = np.reshape(sub_02, shape)
+
+    sub_10 = np.take(sub_y1, offsets_x, axis=2)
+    sub_10 = np.reshape(sub_10, shape)
+    sub_11 = np.take(sub_y1, offsets_x + 1, axis=2)
+    sub_11 = np.reshape(sub_11, shape)
+    sub_12 = np.take(sub_y1, offsets_x - 1, axis=2)
+    sub_12 = np.reshape(sub_12, shape)
+
+    sub_20 = np.take(sub_y2, offsets_x, axis=2)
+    sub_20 = np.reshape(sub_20, shape)
+    sub_21 = np.take(sub_y2, offsets_x + 1, axis=2)
+    sub_21 = np.reshape(sub_21, shape)
+    sub_22 = np.take(sub_y2, offsets_x - 1, axis=2)
+    sub_22 = np.reshape(sub_22, shape)
+
+    maxi = np.maximum(np.maximum(np.maximum(np.maximum(sub_00,sub_01),np.maximum(sub_10,sub_11)),np.maximum(np.maximum(sub_20,sub_21),np.maximum(sub_12,sub_22))),sub_02)
+    mini = np.minimum(np.minimum(np.minimum(np.minimum(sub_00,sub_01),np.minimum(sub_10,sub_11)),np.minimum(np.minimum(sub_20,sub_21),np.minimum(sub_12,sub_22))),sub_02)
+
+    sub = np.subtract(maxi, mini)
+    out = np.where(sub == 1, np.ones_like(sub), np.zeros_like(sub))
+    out = np.multiply(out,x)
+
+    def grad(dy):
+
+        y_00 = np.roll(out, shift=[-1,-1], axis=[1,2])
+        y_01 = np.roll(out, shift=[-1,0], axis=[1,2])
+        y_02 = np.roll(out, shift=[-1,1], axis=[1,2])
+        y_0 = np.add(np.add(y_00, y_01), y_02)
+        y_10 = np.roll(out, shift=[0,-1], axis=[1,2])
+        y_11 = out
+        y_12 = np.roll(out, shift=[0,1], axis=[1,2])
+        y_1 = np.add(np.add(y_10, y_11), y_12)
+        y_20 = np.roll(out, shift=[1,-1], axis=[1,2])
+        y_21 = np.roll(out, shift=[1,0], axis=[1,2])
+        y_22 = np.roll(out, shift=[1,1], axis=[1,2])
+        y_2 = np.add(np.add(y_20, y_21), y_22)
+
+        y_out = np.add(np.add(y_0, y_1), y_2)
+        # return np.multiply(dy, out)
+        return dy
+
+    return out, grad
+
+def np_dist_map_loss(y_true,y_pred):
+  mult = np.multiply(np.abs(y_true),y_pred)
+  loss = np.mean(mult)
+  def grad():
+    return y_true
+  return loss, grad
+
+
+def sigmoid_array(x):
+
+    sigm = 1. / (1. + np.exp(-x))
+
+    def grad(dy):
+        return np.multiply(dy,np.multiply(sigm,(1. - sigm)))
+
+    return sigm, grad
+
 def main():
-    tf.enable_eager_execution()
     examples = load_pickled_examples("../inputFiles/experiment/train.obj")
     img = examples[0]
     arrays = process(img[1])
     arr0 = arrays[:,:,0]
     arr1 = arrays[:,:,1]
     arr2 = arrays[:,:,2]
-    display_array(arr2)
-    arr = arr1[np.newaxis,:,:,np.newaxis]
-    arr2 = arr2[np.newaxis,:,:,np.newaxis]
+    # display_array(arr0)
+    # display_array(arr1)
+    # display_array(arr2)
+    arr = -arr1[np.newaxis,:,:,np.newaxis]
+    arr2 = np.clip(arr2[np.newaxis,:,:,np.newaxis],-1, 1)
+    gamma = 0.5
+    count = 0
     with tf.Session() as sess:
-        #arr = np.random.randint(2,size=(1,256,256,1))
-        out_tensor = tf.Variable(arr,dtype=tf.float32)
-        sess.run(out_tensor.initializer)
-        loss_tensor = tf.Variable(arr2,dtype=tf.float32)
-        sess.run(loss_tensor.initializer)
-        out_tensor = (-1.*out_tensor + 1.)/2.
-        edge_tensor = xor_pool2d3x3(out_tensor)
-        print(edge_tensor.shape)
-        up = tf.roll(edge_tensor, shift=20, axis=1)
-        print(type(edge_tensor))
-        edge_arr = edge_tensor.eval()
-        up_arr = up.eval()
-        print(np.min(edge_arr))
-        print(np.max(edge_arr))
-        display_array(edge_arr)
-        display_array(up_arr)
-        loss = dist_map_loss(loss_tensor,edge_tensor)
-        print(loss.eval())
-        grad_tensor = tf.gradients(loss, [out_tensor])[0]
-        grad_tensor2 = tf.gradients(loss, [edge_tensor])[0]
-        grad_tensor3 = tf.gradients(edge_tensor, [out_tensor])[0]
-        grad_arr = grad_tensor.eval()
-        grad_arr2 = grad_tensor2.eval()
-        grad_arr3 = grad_tensor3.eval()
-        print(np.min(grad_arr))
-        print(np.max(grad_arr))
-        display_array(grad_arr2)
-        display_array(grad_arr)
-        display_array(grad_arr3)
+        while(True):
+            out_arr, sigm_grad_fct = sigmoid_array(arr)
+            edge_arr, xor_grad_fct = np_xor_pooling(out_arr)
+            loss, loss_grad_fct = np_dist_map_loss(arr2,edge_arr)
+            loss_grad = loss_grad_fct()
+            edge_grad = xor_grad_fct(loss_grad)
+            out_grad = sigm_grad_fct(edge_grad)
+            arr = arr - gamma * out_grad
+
+            if count%50 == 0:
+                print(loss)
+                display_array(np.round(out_arr))
+                display_array(out_grad)
+                display_array(arr)
+            count += 1
+
 
 if __name__ == "__main__":
     start = time.time()

@@ -6,7 +6,7 @@ import string
 import argparse
 
 UNIT_SIZE = 256
-TARGET_WIDTH = 2 * UNIT_SIZE
+TARGET_WIDTH = 3 * UNIT_SIZE
 
 # convert the size of png to 256*256
 def convertpng(pngfile,outdir,width=256,height=256):
@@ -44,6 +44,8 @@ if __name__=="__main__":
     parser.add_argument('--roughConvertOutPath', type=str, default = "../outputFiles/rough_256/")
     parser.add_argument('--originConvertInPath', type=str, default = "../outputFiles/origin_1000/")
     parser.add_argument('--originConvertOutPath', type=str, default = "../outputFiles/origin_256/")
+    parser.add_argument('--lossMapConvertInPath', type=str, default = "../outputFiles/lossmap_1000/")
+    parser.add_argument('--lossMapConvertOutPath', type=str, default = "../outputFiles/lossmap_256/")
     parser.add_argument('--trainPath', type=str, default = "../outputFiles/train_256/")
 
     args = parser.parse_args()
@@ -51,6 +53,8 @@ if __name__=="__main__":
     roughConvertOutPath = args.roughConvertOutPath
     originConvertInPath = args.originConvertInPath+"*.png"
     originConvertOutPath = args.originConvertOutPath
+    lossMapConvertInPath = args.lossMapConvertInPath+"*.png"
+    lossMapConvertOutPath = args.lossMapConvertOutPath
     trainPath = args.trainPath
     train_dir = os.path.dirname(trainPath)
     if not os.path.exists(train_dir):
@@ -58,8 +62,10 @@ if __name__=="__main__":
 
     convertAllpng(roughConvertInPath, roughConvertOutPath)
     convertAllpng(originConvertInPath, originConvertOutPath)
+    convertAllpng(lossMapConvertInPath, lossMapConvertOutPath)
     convertImageType(roughConvertOutPath)
     convertImageType(originConvertOutPath)
+    convertImageType(lossMapConvertOutPath)
     images = []
     for f in os.listdir(roughConvertOutPath):
         if (f != '.DS_Store'):
@@ -72,9 +78,11 @@ if __name__=="__main__":
         right = UNIT_SIZE
         rough_image = Image.open(roughConvertOutPath+'/'+images[i])
         origin_image = Image.open(originConvertOutPath+'/'+images[i])
+        loss_map_image = Image.open(lossMapConvertOutPath+'/'+images[i])
         imagefile = []
         imagefile.append(origin_image)
         imagefile.append(rough_image)
+        imagefile.append(loss_map_image)
         for image in imagefile:
             target.paste(image, (left, 0, right, UNIT_SIZE))
             left += UNIT_SIZE 
