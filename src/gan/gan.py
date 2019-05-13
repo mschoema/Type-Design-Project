@@ -280,7 +280,7 @@ class Gan(object):
 
     def validate_model(self, val_iter, epoch, step, is_train_data=False):
         images = next(val_iter)
-        fake_imgs, real_imgs, d_loss, g_loss, l1_loss = self.generate_fake_samples(images, labels)
+        fake_imgs, real_imgs, d_loss, g_loss, l1_loss = self.generate_fake_samples(images)
         if is_train_data:
             print("Train sample: d_loss: %.5f, g_loss: %.5f, l1_loss: %.5f" % (d_loss, g_loss, l1_loss))
         else:
