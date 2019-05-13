@@ -267,20 +267,21 @@ class Gan(object):
 
     def generate_fake_samples(self, input_images):
         input_handle, loss_handle, eval_handle, summary_handle = self.retrieve_handles()
-        fake_images, real_images, \
+        fake_images, real_images, source_images, \
         d_loss, g_loss, l1_loss = self.sess.run([eval_handle.generator,
                                                  eval_handle.target,
+                                                 eval_handle.source,
                                                  loss_handle.d_loss,
                                                  loss_handle.g_loss,
                                                  loss_handle.l1_loss],
                                                 feed_dict={
                                                     input_handle.real_data: input_images
                                                 })
-        return fake_images, real_images, d_loss, g_loss, l1_loss
+        return fake_images, real_images, source_images, d_loss, g_loss, l1_loss
 
     def validate_model(self, val_iter, epoch, step, is_train_data=False):
         images = next(val_iter)
-        fake_imgs, real_imgs, d_loss, g_loss, l1_loss = self.generate_fake_samples(images)
+        fake_imgs, real_imgs, source_images, d_loss, g_loss, l1_loss = self.generate_fake_samples(images)
         if is_train_data:
             print("Train sample: d_loss: %.5f, g_loss: %.5f, l1_loss: %.5f" % (d_loss, g_loss, l1_loss))
         else:
@@ -288,7 +289,8 @@ class Gan(object):
 
         merged_fake_images = merge(scale_back(fake_imgs), [self.batch_size, 1])
         merged_real_images = merge(scale_back(real_imgs), [self.batch_size, 1])
-        merged_pair = np.concatenate([merged_real_images, merged_fake_images], axis=1)
+        merged_source_images = merge(scale_back(source_images), [self.batch_size, 1])
+        merged_pair = np.concatenate([merged_real_images, merged_fake_images, merged_source_images], axis=1)
 
         model_id, _ = self.get_model_id_and_dir()
 
@@ -300,7 +302,7 @@ class Gan(object):
             sample_img_path = os.path.join(model_sample_dir, "train_sample_%02d_%04d.png" % (epoch, step))
         else:
             sample_img_path = os.path.join(model_sample_dir, "val_sample_%02d_%04d.png" % (epoch, step))
-        misc.imsave(sample_img_path, merged_pair)
+        misc.imsave(sample_img_path, merged_pair[:,:,0])
 
     def export_generator(self, save_dir, model_dir, model_name="gen_model"):
         saver = tf.train.Saver()
