@@ -206,7 +206,7 @@ class UNet(object):
         return input_handle, loss_handle, eval_handle, summary_handle
 
     def get_model_id_and_dir(self):
-        model_id = "experiment_%d_batch_%d" % (self.L1_penalty, self.Lconst_penalty, self.experiment_id, self.batch_size)
+        model_id = "experiment_%d_batch_%d" % (self.experiment_id, self.batch_size)
         model_dir = os.path.join(self.checkpoint_dir, model_id)
         return model_id, model_dir
 
