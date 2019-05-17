@@ -22,7 +22,7 @@ SummaryHandle = namedtuple("SummaryHandle", ["g_merged"])
 
 class UNet(object):
     def __init__(self, experiment_dir=None, experiment_id=0, batch_size=16, input_width=256, output_width=256,
-                 generator_dim=64, L1_penalty=100, Lconst_penalty=15, input_filters=1, output_filters=1):
+                 generator_dim=64, L1_penalty=100, Lconst_penalty=15, input_filters=1, output_filters=1, input_type="normal", target_type="normal"):
         self.experiment_dir = experiment_dir
         self.experiment_id = experiment_id
         self.batch_size = batch_size
@@ -33,6 +33,8 @@ class UNet(object):
         self.Lconst_penalty = Lconst_penalty
         self.input_filters = input_filters
         self.output_filters = output_filters
+        self.input_type = input_type
+        self.target_type = target_type
         # init all the directories
         self.sess = None
         # experiment_dir is needed for training
@@ -273,7 +275,7 @@ class UNet(object):
         gen_saver.save(self.sess, os.path.join(save_dir, model_name), global_step=0)
 
     def infer(self, source_obj, model_dir, save_dir):
-        source_provider = InjectDataProvider(source_obj)
+        source_provider = InjectDataProvider(source_obj, input_type=self.input_type, target_type=self.target_type)
 
         source_iter = source_provider.get_random_iter(self.batch_size)
 
@@ -314,7 +316,7 @@ class UNet(object):
         real_data = input_handle.real_data
 
         # filter by one type of labels
-        data_provider = TrainDataProvider(self.data_dir, filter_by=fine_tune)
+        data_provider = TrainDataProvider(self.data_dir, filter_by=fine_tune, input_type=self.input_type, target_type=self.target_type)
         total_batches = data_provider.compute_total_batch_num(self.batch_size)
         val_batch_iter = data_provider.get_val_iter(self.batch_size)
         train_val_batch_iter = data_provider.get_train_val_iter(self.batch_size)
