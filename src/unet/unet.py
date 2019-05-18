@@ -211,7 +211,7 @@ class UNet(object):
         return model_id, model_dir
 
     def checkpoint(self, saver, step):
-        model_name = "unet.model" % (self.L1_penalty, self.Lconst_penalty)
+        model_name = "unet.model"
         model_id, model_dir = self.get_model_id_and_dir()
 
         if not os.path.exists(model_dir):
