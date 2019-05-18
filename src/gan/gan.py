@@ -22,7 +22,7 @@ SummaryHandle = namedtuple("SummaryHandle", ["d_merged", "g_merged"])
 
 class Gan(object):
     def __init__(self, experiment_dir=None, experiment_id=0, batch_size=16, input_width=256, output_width=256,
-                 generator_dim=64, discriminator_dim=64, L1_penalty=100, Lconst_penalty=15, input_filters=1, output_filters=1):
+                 generator_dim=128, discriminator_dim=128, L1_penalty=100, Lconst_penalty=15, input_filters=1, output_filters=1):
         self.experiment_dir = experiment_dir
         self.experiment_id = experiment_id
         self.batch_size = batch_size
@@ -242,12 +242,12 @@ class Gan(object):
         return input_handle, loss_handle, eval_handle, summary_handle
 
     def get_model_id_and_dir(self):
-        model_id = "gan_l1_loss_%d_const_loss_%d_experiment_%d_batch_%d" % (self.L1_penalty, self.Lconst_penalty, self.experiment_id, self.batch_size)
+        model_id = "experiment_%d_batch_%d" % (self.experiment_id, self.batch_size)
         model_dir = os.path.join(self.checkpoint_dir, model_id)
         return model_id, model_dir
 
     def checkpoint(self, saver, step):
-        model_name = "l1_loss_%d_const_loss_%d_gan.model" % (self.L1_penalty, self.Lconst_penalty)
+        model_name = "gan.model"
         model_id, model_dir = self.get_model_id_and_dir()
 
         if not os.path.exists(model_dir):
@@ -348,8 +348,8 @@ class Gan(object):
             raise Exception("no session registered")
 
         learning_rate = tf.placeholder(tf.float32, name="learning_rate")
-        d_optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss_handle.d_loss, var_list=d_vars)
-        g_optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss_handle.g_loss, var_list=g_vars)
+        d_optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss_handle.d_loss, var_list=d_vars)
+        g_optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss_handle.g_loss, var_list=g_vars)
         tf.global_variables_initializer().run()
         real_data = input_handle.real_data
 

@@ -18,7 +18,7 @@ parser.add_argument('--image_size', dest='image_size', type=int, default=256,
                     help="size of your input and output image")
 parser.add_argument('--L1_penalty', dest='L1_penalty', type=int, default=100, help='weight for L1 loss')
 parser.add_argument('--Lconst_penalty', dest='Lconst_penalty', type=int, default=15, help='weight for const loss')
-parser.add_argument('--epoch', dest='epoch', type=int, default=100, help='number of epoch')
+parser.add_argument('--epoch', dest='epoch', type=int, default=200, help='number of epoch')
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=16, help='number of examples in batch')
 parser.add_argument('--lr', dest='lr', type=float, default=0.001, help='initial learning rate for adam')
 parser.add_argument('--schedule', dest='schedule', type=int, default=10, help='number of epochs to half learning rate')
