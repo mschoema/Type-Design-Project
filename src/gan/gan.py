@@ -22,7 +22,7 @@ SummaryHandle = namedtuple("SummaryHandle", ["d_merged", "g_merged"])
 
 class Gan(object):
     def __init__(self, experiment_dir=None, experiment_id=0, batch_size=16, input_width=256, output_width=256,
-                 generator_dim=64, discriminator_dim=64, L1_penalty=100, Lconst_penalty=15, input_filters=1, output_filters=1):
+                 generator_dim=64, discriminator_dim=64, L1_penalty=100, L2_edge_penalty=100, Lconst_penalty=15, input_filters=1, output_filters=1):
         self.experiment_dir = experiment_dir
         self.experiment_id = experiment_id
         self.batch_size = batch_size
@@ -31,6 +31,7 @@ class Gan(object):
         self.generator_dim = generator_dim
         self.discriminator_dim = discriminator_dim
         self.L1_penalty = L1_penalty
+        self.L2_edge_penalty = L2_edge_penalty
         self.Lconst_penalty = Lconst_penalty
         self.input_filters = input_filters
         self.output_filters = output_filters
@@ -117,6 +118,12 @@ class Gan(object):
         output = self.decoder(e8, enc_layers, is_training=is_training, reuse=reuse)
         return output, e8
 
+    def edgeDetectionLayer(self, images):
+        (batch_size, h, w, d) = images.shape
+        edges = tf.image.sobel_edges(images)
+        edges = tf.reshape(edges, (batch_size, h, w, 2*d))
+        return edges
+
     def discriminator(self, image, is_training, reuse=False):
         with tf.variable_scope("discriminator"):
             if reuse:
@@ -148,6 +155,9 @@ class Gan(object):
         real_AB = tf.concat([real_A, real_B], 3)
         fake_AB = tf.concat([real_A, fake_B], 3)
 
+        edges_fake_B = self.edgeDetectionLayer(fake_B)
+        edges_real_B = self.edgeDetectionLayer(real_B)
+
         # Note it is not possible to set reuse flag back to False
         # initialize all variables before setting reuse to True
         real_D, real_D_logits = self.discriminator(real_AB, is_training=is_training, reuse=False)
@@ -166,6 +176,9 @@ class Gan(object):
                                                                              labels=tf.zeros_like(fake_D)))
         # L1 loss between real and generated images
         l1_loss = self.L1_penalty * tf.reduce_mean(tf.abs(fake_B - real_B))
+
+        # L2 loss between eges of real and generated images
+        l2_edge_loss = self.L2_edge_penalty * tf.reduce_mean(tf.square(edges_fake_B - edges_real_B))
 
         # maximize the chance generator fool the discriminator
         cheat_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_D_logits,

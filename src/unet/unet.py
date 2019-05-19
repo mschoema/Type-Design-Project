@@ -123,6 +123,12 @@ class UNet(object):
         output = self.decoder(e8, enc_layers, is_training=is_training, reuse=reuse)
         return output, e8
 
+    def edgeDetectionLayer(self, images):
+        (batch_size, h, w, d) = images.shape()
+        edges = tf.image.sobel_edges(images)
+        edges = tf.reshape(edges, (batch_size, h, w, 2*d))
+        return edges
+
     def build_model(self, is_training=True, no_target_source=False):
         real_data = tf.placeholder(tf.float32,
                                    [self.batch_size, self.input_width, self.input_width,

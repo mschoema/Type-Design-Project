@@ -57,6 +57,13 @@ def process(img):
     finally:
         img.close()
 
+def edgeDetectionLayer(images):
+    (batch_size, h, w, d) = images.shape
+    edges = tf.image.sobel_edges(images)
+    print(edges.shape)
+    edges = tf.reshape(edges, (batch_size, h, w, 2*d))
+    return edges
+
 def main():
     examples = load_pickled_examples("../inputFiles/experiment/train.obj")
     img = examples[0]
@@ -65,9 +72,28 @@ def main():
     arr1 = arrays[:,:,1]
     display_array(arr0)
     display_array(arr1)
-    arr = np.multiply(arr0,arr1)
-    display_array(arr)
-
+    arr0 = arr0[np.newaxis,:,:,np.newaxis]
+    arr1 = arr1[np.newaxis,:,:,np.newaxis]
+    arr = np.concatenate([arr0, arr1], axis=3)
+    print(arr.shape)
+    with tf.Session() as sess:
+        arrt = tf.constant(arr, tf.float64)
+        edgest = edgeDetectionLayer(arrt)
+        edges = edgest.eval()
+    edge0 = edges[0,:,:,0]
+    edge1 = edges[0,:,:,1]
+    edge2 = edges[0,:,:,2]
+    edge3 = edges[0,:,:,3]
+    display_array(edge0)
+    display_array(edge1)
+    display_array(edge2)
+    display_array(edge3)
+    loss_x = np.mean(np.square(edge0 - edge2))
+    loss_y = np.mean(np.square(edge1 - edge3))
+    loss = loss_x+loss_y
+    print(loss_x)
+    print(loss_y)
+    print(loss)
 
 if __name__ == "__main__":
     start = time.time()
