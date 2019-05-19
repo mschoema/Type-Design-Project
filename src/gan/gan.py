@@ -14,7 +14,7 @@ from utils import scale_back, merge, save_concat_images
 
 # Auxiliary wrapper classes
 # Used to save handles(important nodes in computation graph) for later evaluation
-LossHandle = namedtuple("LossHandle", ["d_loss", "g_loss", "const_loss", "l1_loss", "cheat_loss"])
+LossHandle = namedtuple("LossHandle", ["d_loss", "g_loss", "const_loss", "l1_loss", "l2_edge_loss", "cheat_loss"])
 InputHandle = namedtuple("InputHandle", ["real_data"])
 EvalHandle = namedtuple("EvalHandle", ["encoder", "generator", "target", "source"])
 SummaryHandle = namedtuple("SummaryHandle", ["d_merged", "g_merged"])
@@ -185,12 +185,13 @@ class Gan(object):
                                                                             labels=tf.ones_like(fake_D)))
 
         d_loss = d_loss_real + d_loss_fake
-        g_loss = cheat_loss + l1_loss + const_loss
+        g_loss = cheat_loss + l1_loss + l2_edge_loss + const_loss
 
         d_loss_real_summary = tf.summary.scalar("d_loss_real", d_loss_real)
         d_loss_fake_summary = tf.summary.scalar("d_loss_fake", d_loss_fake)
         cheat_loss_summary = tf.summary.scalar("cheat_loss", cheat_loss)
         l1_loss_summary = tf.summary.scalar("l1_loss", l1_loss)
+        l2_edge_loss_summary = tf.summary.scalar("l2_edge_loss", l2_edge_loss)
         const_loss_summary = tf.summary.scalar("const_loss", const_loss)
         d_loss_summary = tf.summary.scalar("d_loss", d_loss)
         g_loss_summary = tf.summary.scalar("g_loss", g_loss)
@@ -198,7 +199,7 @@ class Gan(object):
         d_merged_summary = tf.summary.merge([d_loss_real_summary, d_loss_fake_summary,
                                              d_loss_summary])
         g_merged_summary = tf.summary.merge([cheat_loss_summary, l1_loss_summary, 
-                                             const_loss_summary,
+                                             l2_edge_loss_summary, const_loss_summary,
                                              g_loss_summary])
 
         # expose useful nodes in the graph as handles globally
@@ -208,6 +209,7 @@ class Gan(object):
                                  g_loss=g_loss,
                                  const_loss=const_loss,
                                  l1_loss=l1_loss,
+                                 l2_edge_loss=l2_edge_loss,
                                  cheat_loss=cheat_loss)
 
         eval_handle = EvalHandle(encoder=encoded_real_A,
@@ -281,24 +283,25 @@ class Gan(object):
     def generate_fake_samples(self, input_images):
         input_handle, loss_handle, eval_handle, summary_handle = self.retrieve_handles()
         fake_images, real_images, source_images, \
-        d_loss, g_loss, l1_loss = self.sess.run([eval_handle.generator,
+        d_loss, g_loss, l1_loss, l2_edge_loss = self.sess.run([eval_handle.generator,
                                                  eval_handle.target,
                                                  eval_handle.source,
                                                  loss_handle.d_loss,
                                                  loss_handle.g_loss,
-                                                 loss_handle.l1_loss],
+                                                 loss_handle.l1_loss,
+                                                 loss_handle.l2_edge_loss],
                                                 feed_dict={
                                                     input_handle.real_data: input_images
                                                 })
-        return fake_images, real_images, source_images, d_loss, g_loss, l1_loss
+        return fake_images, real_images, source_images, d_loss, g_loss, l1_loss, l2_edge_loss
 
     def validate_model(self, val_iter, epoch, step, is_train_data=False):
         images = next(val_iter)
-        fake_imgs, real_imgs, source_images, d_loss, g_loss, l1_loss = self.generate_fake_samples(images)
+        fake_imgs, real_imgs, source_images, d_loss, g_loss, l1_loss, l2_edge_loss = self.generate_fake_samples(images)
         if is_train_data:
-            print("Train sample: d_loss: %.5f, g_loss: %.5f, l1_loss: %.5f" % (d_loss, g_loss, l1_loss))
+            print("Train sample: d_loss: %.5f, g_loss: %.5f, l1_loss: %.5f, l2_edge_loss: %.5f" % (d_loss, g_loss, l1_loss, l2_edge_loss))
         else:
-            print("Val sample: d_loss: %.5f, g_loss: %.5f, l1_loss: %.5f" % (d_loss, g_loss, l1_loss))
+            print("Val sample: d_loss: %.5f, g_loss: %.5f, l1_loss: %.5f, l2_edge_loss: %.5f" % (d_loss, g_loss, l1_loss, l2_edge_loss))
 
         merged_fake_images = merge(scale_back(fake_imgs), [self.batch_size, 1])
         merged_real_images = merge(scale_back(real_imgs), [self.batch_size, 1])
@@ -416,11 +419,12 @@ class Gan(object):
                 # according to https://github.com/carpedm20/DCGAN-tensorflow
                 # collect all the losses along the way
                 _, batch_g_loss, cheat_loss, \
-                const_loss, l1_loss, g_summary = self.sess.run([g_optimizer,
+                const_loss, l1_loss, l2_edge_loss, g_summary = self.sess.run([g_optimizer,
                                                                          loss_handle.g_loss,
                                                                          loss_handle.cheat_loss,
                                                                          loss_handle.const_loss,
                                                                          loss_handle.l1_loss,
+                                                                         loss_handle.l2_edge_loss,
                                                                          summary_handle.g_merged],
                                                                         feed_dict={
                                                                             real_data: batch_images,
@@ -430,9 +434,9 @@ class Gan(object):
                 epoch_passed = time.time() - epoch_start_time
                 total_passed = time.time() - start_time
                 log_format = "Epoch: [%2d], [%4d/%4d] total time: %4.4f, epoch time: %4.4f, batch time: %4.4f, d_loss: %.5f, g_loss: %.5f, " + \
-                             "cheat_loss: %.5f, const_loss: %.5f, l1_loss: %.5f"
+                             "cheat_loss: %.5f, const_loss: %.5f, l1_loss: %.5f, l2_edge_loss: %.5f"
                 print(log_format % (ei, bid, total_batches, total_passed, epoch_passed, batch_passed, batch_d_loss, batch_g_loss,
-                                    cheat_loss, const_loss, l1_loss))
+                                    cheat_loss, const_loss, l1_loss, l2_edge_loss))
                 summary_writer.add_summary(d_summary, counter)
                 summary_writer.add_summary(g_summary, counter)
 
