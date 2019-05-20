@@ -61,22 +61,24 @@ class Gan(object):
 
             encode_layers = dict()
 
-            def encode_layer(x, output_filters, layer):
+            def encode_layer(x, output_filters, layer, dropout=False):
                 act = lrelu(x)
                 conv = conv2d(act, output_filters=output_filters, scope="g_e%d_conv" % layer)
                 enc = batch_norm(conv, is_training, scope="g_e%d_bn" % layer)
+                if dropout:
+                    enc = tf.nn.dropout(enc, 0.5)
                 encode_layers["e%d" % layer] = enc
                 return enc
 
             e1 = conv2d(images, self.generator_dim, scope="g_e1_conv")
             encode_layers["e1"] = e1
-            e2 = encode_layer(e1, self.generator_dim * 2, 2)
-            e3 = encode_layer(e2, self.generator_dim * 4, 3)
-            e4 = encode_layer(e3, self.generator_dim * 8, 4)
-            e5 = encode_layer(e4, self.generator_dim * 8, 5)
-            e6 = encode_layer(e5, self.generator_dim * 8, 6)
-            e7 = encode_layer(e6, self.generator_dim * 8, 7)
-            e8 = encode_layer(e7, self.generator_dim * 8, 8)
+            e2 = encode_layer(e1, self.generator_dim * 2, 2, dropout=True)
+            e3 = encode_layer(e2, self.generator_dim * 4, 3, dropout=True)
+            e4 = encode_layer(e3, self.generator_dim * 8, 4, dropout=True)
+            e5 = encode_layer(e4, self.generator_dim * 8, 5, dropout=True)
+            e6 = encode_layer(e5, self.generator_dim * 8, 6, dropout=True)
+            e7 = encode_layer(e6, self.generator_dim * 8, 7, dropout=True)
+            e8 = encode_layer(e7, self.generator_dim * 8, 8, dropout=True)
 
             return e8, encode_layers
 
@@ -104,10 +106,10 @@ class Gan(object):
                               dropout=True)
             d2 = decode_layer(d1, s64, self.generator_dim * 8, layer=2, enc_layer=encoding_layers["e6"], dropout=True)
             d3 = decode_layer(d2, s32, self.generator_dim * 8, layer=3, enc_layer=encoding_layers["e5"], dropout=True)
-            d4 = decode_layer(d3, s16, self.generator_dim * 8, layer=4, enc_layer=encoding_layers["e4"])
-            d5 = decode_layer(d4, s8, self.generator_dim * 4, layer=5, enc_layer=encoding_layers["e3"])
-            d6 = decode_layer(d5, s4, self.generator_dim * 2, layer=6, enc_layer=encoding_layers["e2"])
-            d7 = decode_layer(d6, s2, self.generator_dim, layer=7, enc_layer=encoding_layers["e1"])
+            d4 = decode_layer(d3, s16, self.generator_dim * 8, layer=4, enc_layer=encoding_layers["e4"], dropout=True)
+            d5 = decode_layer(d4, s8, self.generator_dim * 4, layer=5, enc_layer=encoding_layers["e3"], dropout=True)
+            d6 = decode_layer(d5, s4, self.generator_dim * 2, layer=6, enc_layer=encoding_layers["e2"], dropout=True)
+            d7 = decode_layer(d6, s2, self.generator_dim, layer=7, enc_layer=encoding_layers["e1"], dropout=True)
             d8 = decode_layer(d7, s, self.output_filters, layer=8, enc_layer=None, do_concat=False)
 
             output = tf.nn.tanh(d8)  # scale to (-1, 1)
