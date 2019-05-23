@@ -34,7 +34,6 @@ class Gan(object):
         self.L2_edge_penalty = L2_edge_penalty
         self.Lconst_penalty = Lconst_penalty
         self.dropout = dropout
-        self.dropout_rate = 0.5 if dropout else 0
         self.input_filters = input_filters
         self.output_filters = output_filters
         self.counter_list = []
@@ -144,13 +143,16 @@ class Gan(object):
             if reuse:
                 tf.get_variable_scope().reuse_variables()
             h0 = lrelu(conv2d(image, self.discriminator_dim, scope="d_h0_conv"))
-            h0 = tf.nn.dropout(h0, self.dropout_rate)
+            if self.dropout:
+                h0 = tf.nn.dropout(h0, 0.5)
             h1 = lrelu(batch_norm(conv2d(h0, self.discriminator_dim * 2, scope="d_h1_conv"),
                                   is_training, scope="d_bn_1"))
-            h1 = tf.nn.dropout(h1, self.dropout_rate)
+            if self.dropout:
+                h1 = tf.nn.dropout(h1, 0.5)
             h2 = lrelu(batch_norm(conv2d(h1, self.discriminator_dim * 4, scope="d_h2_conv"),
                                   is_training, scope="d_bn_2"))
-            h2 = tf.nn.dropout(h2, self.dropout_rate)
+            if self.dropout:
+                h2 = tf.nn.dropout(h2, 0.5)
             h3 = lrelu(batch_norm(conv2d(h2, self.discriminator_dim * 8, sh=1, sw=1, scope="d_h3_conv"),
                                   is_training, scope="d_bn_3"))
             # real or fake binary loss
