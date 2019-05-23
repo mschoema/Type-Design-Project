@@ -351,7 +351,7 @@ class Gan(object):
 
         return l1_loss, l2_edge_loss, iou
 
-    def save_lists():
+    def save_lists(self):
         model_id, _ = self.get_model_id_and_dir()
         model_lists_dir = os.path.join(self.lists_dir, model_id)
         if not os.path.exists(model_lists_dir):
