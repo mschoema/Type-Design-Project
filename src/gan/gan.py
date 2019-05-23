@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import tensorflow as tf
 import numpy as np
 import scipy.misc as misc
+import pickle
 import os
 import time
 from collections import namedtuple
