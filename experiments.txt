@@ -1,0 +1,7 @@
+Experiment id's with their corresponding parameter values (when different from default):
+1 - unet target_type=negative, sgd optimizer
+2 - gan 200 epochs, adam optimizer
+3 - gan 200 epochs, l2 edge loss (penalty=100)
+4 - gan 200 epochs, l2 edge loss (penalty=15)
+5 - gan 200 epochs, no edge loss, more dropout
+6 - gan 200 epochs, l2 edge loss (penalty=15), more dropout

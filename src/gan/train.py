@@ -17,8 +17,9 @@ parser.add_argument('--experiment_id', dest='experiment_id', type=int, default=0
 parser.add_argument('--image_size', dest='image_size', type=int, default=256,
                     help="size of your input and output image")
 parser.add_argument('--L1_penalty', dest='L1_penalty', type=int, default=100, help='weight for L1 loss')
-parser.add_argument('--L2_edge_penalty', dest='L2_edge_penalty', type=int, default=100, help='weight for L2 edge loss')
+parser.add_argument('--L2_edge_penalty', dest='L2_edge_penalty', type=int, default=15, help='weight for L2 edge loss')
 parser.add_argument('--Lconst_penalty', dest='Lconst_penalty', type=int, default=15, help='weight for const loss')
+parser.add_argument('--dropout', dest='dropout', type=bool, default=False, help='set to true for extra dropout')
 parser.add_argument('--epoch', dest='epoch', type=int, default=200, help='number of epoch')
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=16, help='number of examples in batch')
 parser.add_argument('--lr', dest='lr', type=float, default=0.001, help='initial learning rate for adam')
@@ -41,7 +42,8 @@ def main(_):
 
     with tf.Session(config=config) as sess:
         model = Gan(args.experiment_dir, batch_size=args.batch_size, experiment_id=args.experiment_id,
-                     input_width=args.image_size, output_width=args.image_size, L1_penalty=args.L1_penalty, L2_edge_penalty=args.L2_edge_penalty, Lconst_penalty=args.Lconst_penalty)
+                     input_width=args.image_size, output_width=args.image_size, L1_penalty=args.L1_penalty,
+                     L2_edge_penalty=args.L2_edge_penalty, Lconst_penalty=args.Lconst_penalty, dropout=args.dropout)
         model.register_session(sess)
         model.build_model(is_training=True)
         fine_tune_list = None
@@ -51,6 +53,7 @@ def main(_):
         model.train(lr=args.lr, epoch=args.epoch, resume=args.resume,
                     schedule=args.schedule, freeze_encoder=args.freeze_encoder, fine_tune=fine_tune_list,
                     sample_steps=args.sample_steps, checkpoint_steps=args.checkpoint_steps)
+
 
 
 if __name__ == '__main__':

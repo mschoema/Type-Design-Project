@@ -8,6 +8,7 @@ import os
 from utils import pad_seq, bytes_to_file, \
     read_split_image, shift_and_resize_image, normalize_image
 
+np.random.seed(3000)
 
 class PickledImageProvider(object):
     def __init__(self, obj_path):

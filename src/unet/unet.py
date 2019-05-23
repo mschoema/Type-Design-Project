@@ -14,7 +14,7 @@ from utils import scale_back, merge, save_concat_images
 
 # Auxiliary wrapper classes
 # Used to save handles(important nodes in computation graph) for later evaluation
-LossHandle = namedtuple("LossHandle", ["g_loss", "const_loss", "l1_loss"])
+LossHandle = namedtuple("LossHandle", ["g_loss", "const_loss", "l1_loss", "l2_edge_loss"])
 InputHandle = namedtuple("InputHandle", ["real_data"])
 EvalHandle = namedtuple("EvalHandle", ["encoder", "generator", "target", "source"])
 SummaryHandle = namedtuple("SummaryHandle", ["g_merged"])
@@ -22,7 +22,7 @@ SummaryHandle = namedtuple("SummaryHandle", ["g_merged"])
 
 class UNet(object):
     def __init__(self, experiment_dir=None, experiment_id=0, batch_size=16, input_width=256, output_width=256,
-                 generator_dim=64, L1_penalty=100, Lconst_penalty=15, input_filters=1, output_filters=1, input_type="normal", target_type="normal"):
+                 generator_dim=64, L1_penalty=100, L2_edge_penalty Lconst_penalty=15, input_filters=1, output_filters=1, input_type="normal", target_type="normal"):
         self.experiment_dir = experiment_dir
         self.experiment_id = experiment_id
         self.batch_size = batch_size
@@ -30,6 +30,7 @@ class UNet(object):
         self.output_width = output_width
         self.generator_dim = generator_dim
         self.L1_penalty = L1_penalty
+        self.L2_edge_penalty = L2_edge_penalty
         self.Lconst_penalty = Lconst_penalty
         self.input_filters = input_filters
         self.output_filters = output_filters
@@ -144,6 +145,9 @@ class UNet(object):
         real_AB = tf.concat([real_A, real_B], 3)
         fake_AB = tf.concat([real_A, fake_B], 3)
 
+        edges_fake_B = self.edgeDetectionLayer(fake_B)
+        edges_real_B = self.edgeDetectionLayer(real_B)
+
         # encoding constant loss
         # this loss assume that generated imaged and real image
         # should reside in the same space and close to each other
@@ -153,21 +157,26 @@ class UNet(object):
         # L1 loss between real and generated images
         l1_loss = self.L1_penalty * tf.reduce_mean(tf.abs(fake_B - real_B))
 
-        g_loss = l1_loss + const_loss
+         # L2 loss between eges of real and generated images
+        l2_edge_loss = self.L2_edge_penalty * tf.reduce_mean(tf.square(edges_fake_B - edges_real_B))
+
+        g_loss = l1_loss + l2_edge_loss + const_loss
 
         l1_loss_summary = tf.summary.scalar("l1_loss", l1_loss)
+        l2_edge_loss_summary = tf.summary.scalar("l2_edge_loss", l2_edge_loss)
         const_loss_summary = tf.summary.scalar("const_loss", const_loss)
         g_loss_summary = tf.summary.scalar("g_loss", g_loss)
 
-        g_merged_summary = tf.summary.merge([l1_loss_summary, const_loss_summary,
-                                             g_loss_summary])
+        g_merged_summary = tf.summary.merge([l1_loss_summary, l2_edge_loss_summary,
+                                            const_loss_summary, g_loss_summary])
 
         # expose useful nodes in the graph as handles globally
         input_handle = InputHandle(real_data=real_data)
 
         loss_handle = LossHandle(g_loss=g_loss,
                                  const_loss=const_loss,
-                                 l1_loss=l1_loss)
+                                 l1_loss=l1_loss,
+                                 l2_edge_loss=l2_edge_loss)
 
         eval_handle = EvalHandle(encoder=encoded_real_A,
                                  generator=fake_B,
@@ -238,23 +247,24 @@ class UNet(object):
     def generate_fake_samples(self, input_images):
         input_handle, loss_handle, eval_handle, summary_handle = self.retrieve_handles()
         fake_images, real_images, source_images, \
-        g_loss, l1_loss = self.sess.run([eval_handle.generator,
+        g_loss, l1_loss, l2_edge_loss = self.sess.run([eval_handle.generator,
                                                  eval_handle.target,
                                                  eval_handle.source,
                                                  loss_handle.g_loss,
-                                                 loss_handle.l1_loss],
+                                                 loss_handle.l1_loss,
+                                                 loss_handle.l2_edge_loss],
                                                 feed_dict={
                                                     input_handle.real_data: input_images
                                                 })
-        return fake_images, real_images, source_images, g_loss, l1_loss
+        return fake_images, real_images, source_images, g_loss, l1_loss, l2_edge_loss
 
     def validate_model(self, val_iter, epoch, step, is_train_data=False):
         images = next(val_iter)
-        fake_imgs, real_imgs, source_images, g_loss, l1_loss = self.generate_fake_samples(images)
+        fake_imgs, real_imgs, source_images, g_loss, l1_loss, l2_edge_loss = self.generate_fake_samples(images)
         if is_train_data:
-            print("Train sample: g_loss: %.5f, l1_loss: %.5f" % (g_loss, l1_loss))
+            print("Train sample: g_loss: %.5f, l1_loss: %.5f, l2_edge_loss %.5f" % (g_loss, l1_loss, l2_edge_loss))
         else:
-            print("Val sample: g_loss: %.5f, l1_loss: %.5f" % (g_loss, l1_loss))
+            print("Val sample: g_loss: %.5f, l1_loss: %.5f, l2_edge_loss %.5f" % (g_loss, l1_loss, l2_edge_loss))
 
         merged_fake_images = merge(scale_back(fake_imgs), [self.batch_size, 1])
         merged_real_images = merge(scale_back(real_imgs), [self.batch_size, 1])
@@ -365,10 +375,11 @@ class UNet(object):
                 # according to https://github.com/carpedm20/DCGAN-tensorflow
                 # collect all the losses along the way
                 _, batch_g_loss, \
-                const_loss, l1_loss, g_summary = self.sess.run([g_optimizer,
+                const_loss, l1_loss, l2_edge_loss, g_summary = self.sess.run([g_optimizer,
                                                                          loss_handle.g_loss,
                                                                          loss_handle.const_loss,
                                                                          loss_handle.l1_loss,
+                                                                         loss_handle.l2_edge_loss,
                                                                          summary_handle.g_merged],
                                                                         feed_dict={
                                                                             real_data: batch_images,
@@ -378,9 +389,9 @@ class UNet(object):
                 epoch_passed = time.time() - epoch_start_time
                 total_passed = time.time() - start_time
                 log_format = "Epoch: [%2d], [%4d/%4d] total time: %4.4f, epoch time: %4.4f, batch time: %4.4f, g_loss: %.5f, " + \
-                             "const_loss: %.5f, l1_loss: %.5f"
+                             "const_loss: %.5f, l1_loss: %.5f, l2_edge_loss: %.5f"
                 print(log_format % (ei, bid, total_batches, total_passed, epoch_passed, batch_passed, batch_g_loss,
-                                    const_loss, l1_loss))
+                                    const_loss, l1_loss, l2_edge_loss))
                 summary_writer.add_summary(g_summary, counter)
 
                 if counter % sample_steps == 0:

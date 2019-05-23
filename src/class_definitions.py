@@ -54,7 +54,7 @@ class ArrayCollection:
         self.lossMap = lossMap
 
     def isComplete(self):
-        return self.character is not None and self.roughDefinition is not None and self.lossMap is not None
+        return self.character is not None and self.roughDefinition is not None
 
     def printIncomplete(self):
         if self.character is None:

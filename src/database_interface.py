@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sqlite3
 import numpy as np
 import csv
@@ -10,13 +11,14 @@ from array_display import display_array
 from loss_map import compute_loss_map
 import sqlite_database
 from sqlite_database import openDatabase, closeDatabase
+from character_to_unicode import getUid
 
 """
 Converting numpy array to binary and back for insertion in sql
 """
 
 DATABASE_PATH = "../database.db"
-TEXT_DATABASE_PATH = "../inputFiles/database.txt"
+TEXT_DATABASE_PATH = "../inputFiles/database4.0.txt"
 CHARACTER_IMAGES_PATH = "../characterImages/"
 OUTPUT_PATH = "../outputFiles/"
 FILL_DATABASE = False
@@ -58,9 +60,70 @@ def fillDatabase():
     closeDatabase(conn)
     print("Done")
 
-def updateDatabase():
-    # TODO
-    pass
+def updateDatabase(path_to_database):
+
+    def readRow(row):
+        try:
+            uid = getUid(row[0])
+            lid = int(row[1][3:])
+            compsLength = len(layouts.get(lid))
+            compIds = []
+            for i in range(compsLength):
+                compIds.append(getUid(row[i + 2]))
+            charDef = CharDef(uid, lid, compsLength, compIds)
+        except Exception as e:
+            print(e)
+            charDef = None
+        return charDef
+
+    print("Updating database")
+    characters = sqlite_database.getUnicodeList()
+    waitingList = []
+    with open(path_to_database, encoding="utf16") as csvfile:
+        fileReader = csv.reader(csvfile, delimiter='\t')
+        count = 0
+        for row in fileReader:
+            if count == 0:
+                count += 1
+                continue
+            charDef = readRow(row)
+            print(charDef)
+            if charDef:
+                waitingList = [charDef] + waitingList
+    while len(waitingList) > 0:
+        beforeLen = len(waitingList)
+        for i in reversed(range(beforeLen)):
+            charDef = waitingList[i]
+            if charDef.uid in characters:
+                charDefInDb = sqlite_database.getCharDef(charDef.uid)
+                if charDefInDb.lid == charDef.lid and charDefInDb.compIds == charDef.compIds:
+                    del waitingList[i]
+                else:
+                    compsInDb = True
+                    for i in range(charDef.compsLen):
+                        if charDef.compIds[i] not in characters:
+                            compsInDb = False
+                    if compsInDb:
+                        sqlite_database.updateChar(charDef)
+                        del waitingList[i]
+            else:
+                compsInDb = True
+                for i in range(charDef.compsLen):
+                    if charDef.compIds[i] not in characters:
+                        compsInDb = False
+                if compsInDb or charDef.lid == 0:
+                    sqlite_database.insertChar(charDef)
+                    characters.append(charDef.uid)
+                    del waitingList[i]
+        afterLen = len(waitingList)
+        if beforeLen == afterLen:
+            break
+    if len(waitingList) > 0:
+        print(len(waitingList))
+        print("The following characters could not be inserted in the database:")
+        for charDef in waitingList:
+            print(charDef)
+    print("Done")
 
 def computeAndImportArrays(style):
 
@@ -169,19 +232,19 @@ def computeAndImportArrays(style):
     charDefDic = sqlite_database.getCharDefDic()
     roughImageDic, arrayDic = getBaseImages(style)
     addRoughDefArrays()
-    addLossMapArrays()
+    # addLossMapArrays()
     print("Saving images")
     for uid, ac in arrayDic.items():
         if ac.isComplete():
             images = [ac.character, ac.roughDefinition, ac.lossMap]
 
-            images[1].save(OUTPUT_PATH + "/rough_1000/" + ac.style + "_" + ac.uid + ".png")
-            images[0].save(OUTPUT_PATH + "/origin_1000/" + ac.style + "_" + ac.uid + ".png")
-            images[2].save(OUTPUT_PATH + "/lossmap_1000/" + ac.style + "_" + ac.uid + ".png")
+            # images[1].save(OUTPUT_PATH + "/rough_1000/" + ac.style + "_" + ac.uid + ".png")
+            # images[0].save(OUTPUT_PATH + "/origin_1000/" + ac.style + "_" + ac.uid + ".png")
+            # images[2].save(OUTPUT_PATH + "/lossmap_1000/" + ac.style + "_" + ac.uid + ".png")
 
             images[1].save(OUTPUT_PATH + ac.style + "/rough_1000/" + ac.uid + ".png")
             images[0].save(OUTPUT_PATH + ac.style + "/origin_1000/" + ac.uid + ".png")
-            images[2].save(OUTPUT_PATH + ac.style + "/lossmap_1000/" + ac.uid + ".png")
+            # images[2].save(OUTPUT_PATH + ac.style + "/lossmap_1000/" + ac.uid + ".png")
 
             # widths, heights = zip(*(i.size for i in images))
 
@@ -229,7 +292,8 @@ def main():
     if FILL_DATABASE:
         fillDatabase()
     if UPDATE_DATABASE:
-        updateDatabase()
+        path_to_database = sys.argv[1]
+        updateDatabase(path_to_database)
     if COMPUTE_AND_IMPORT_ARRAYS:
         styles = sys.argv[1:]
         rough_directory = os.path.dirname('../outputFiles/rough_1000/')

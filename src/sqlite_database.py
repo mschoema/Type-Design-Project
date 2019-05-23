@@ -117,6 +117,19 @@ def insertChar(charDef):
     cur.execute("Insert Into Character(uid,lid,compsLen, comp1, comp2, comp3, comp4, comp5, pdef) values (?,?,?,?,?,?,?,?,?)", char)
     closeDatabase(conn)
 
+def updateChar(charDef):
+    (conn, cur) = openDatabase()
+    char = [charDef.lid, charDef.compsLen]
+    for i in range(5):
+        if i < charDef.compsLen:
+            char.append(charDef.compIds[i])
+        else:
+            char.append(None)
+    char.append(charDef.uid)
+    cur.execute("Update Character set lid = ?, compsLen = ?, comp1 = ?, comp2 = ?, comp3 = ?, comp4 = ?, comp5 = ? where uid = ?", char)
+    closeDatabase(conn)
+
+
 def getUnicodeList():
     (conn, cur) = openDatabase()
     unicodes = cur.execute("Select uid from Character").fetchall()

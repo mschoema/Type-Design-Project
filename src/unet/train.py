@@ -19,6 +19,7 @@ parser.add_argument('--image_size', dest='image_size', type=int, default=256,
 parser.add_argument('--input_type', dest='input_type', type=str, default="normal", help="Possible values: normal, blurred_input, translated_input")
 parser.add_argument('--target_type', dest='target_type', type=str, default="normal", help="Possible values: normal, negative")
 parser.add_argument('--L1_penalty', dest='L1_penalty', type=int, default=100, help='weight for L1 loss')
+parser.add_argument('--L2_edge_penalty', dest='L2_edge_penalty', type=int, default=15, help='weight for L2 edge loss')
 parser.add_argument('--Lconst_penalty', dest='Lconst_penalty', type=int, default=15, help='weight for const loss')
 parser.add_argument('--epoch', dest='epoch', type=int, default=100, help='number of epoch')
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=16, help='number of examples in batch')
@@ -42,7 +43,7 @@ def main(_):
 
     with tf.Session(config=config) as sess:
         model = UNet(args.experiment_dir, batch_size=args.batch_size, experiment_id=args.experiment_id,
-                     input_width=args.image_size, output_width=args.image_size, L1_penalty=args.L1_penalty, Lconst_penalty=args.Lconst_penalty, input_type=args.input_type, target_type=args.target_type)
+                     input_width=args.image_size, output_width=args.image_size, L1_penalty=args.L1_penalty, L2_edge_penalty=args.L2_edge_penalty, Lconst_penalty=args.Lconst_penalty, input_type=args.input_type, target_type=args.target_type)
         model.register_session(sess)
         model.build_model(is_training=True)
         fine_tune_list = None

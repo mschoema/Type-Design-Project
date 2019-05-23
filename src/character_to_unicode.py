@@ -6,9 +6,21 @@ UNICODES = []
 def prepareCharacters():
     global UTF_20902
     global UNICODES
-    for i in range(0x4E00, 0x9FA5+1): 
+    for i in range(0x4E00, 0x9FA5+1):
         UTF_20902.append(chr(i))
         UNICODES.append(takeUnicode(chr(i)))
+
+def getUid(char):
+    if len(UNICODES) == 0:
+        prepareCharacters()
+    if len(char) > 1:
+        return char
+    else:
+        uid = takeUnicode(char)
+        if uid in UNICODES:
+            return uid
+        else:
+            raise Exception("Character unicode not in accepted range")
 
 
 def takeUnicode(elem):
@@ -46,6 +58,8 @@ def main():
         if isValidValue(buffer):
             handleValue(buffer)
         else:
+            uid = takeUnicode(buffer)
+            print(uid)
             print_header = False
             print("Incorrect value.")
 

@@ -22,7 +22,7 @@ SummaryHandle = namedtuple("SummaryHandle", ["d_merged", "g_merged"])
 
 class Gan(object):
     def __init__(self, experiment_dir=None, experiment_id=0, batch_size=16, input_width=256, output_width=256,
-                 generator_dim=64, discriminator_dim=64, L1_penalty=100, L2_edge_penalty=100, Lconst_penalty=15, input_filters=1, output_filters=1):
+                 generator_dim=64, discriminator_dim=64, L1_penalty=100, L2_edge_penalty=100, Lconst_penalty=15, dropout=False, input_filters=1, output_filters=1):
         self.experiment_dir = experiment_dir
         self.experiment_id = experiment_id
         self.batch_size = batch_size
@@ -33,8 +33,17 @@ class Gan(object):
         self.L1_penalty = L1_penalty
         self.L2_edge_penalty = L2_edge_penalty
         self.Lconst_penalty = Lconst_penalty
+        self.dropout = dropout
+        self.dropout_rate = 0.5 if dropout else 0
         self.input_filters = input_filters
         self.output_filters = output_filters
+        self.counter_list = []
+        self.train_l1_loss_list = []
+        self.train_l2_edge_loss_list = []
+        self.train_iou_list = []
+        self.val_l1_loss_list = []
+        self.val_l2_edge_loss_list = []
+        self.val_iou_list = []
         # init all the directories
         self.sess = None
         # experiment_dir is needed for training
@@ -43,6 +52,7 @@ class Gan(object):
             self.checkpoint_dir = os.path.join(self.experiment_dir, "checkpoint")
             self.sample_dir = os.path.join(self.experiment_dir, "sample")
             self.log_dir = os.path.join(self.experiment_dir, "logs")
+            self.lists_dir = os.path.join(self.experiment_dir, "lists")
 
             if not os.path.exists(self.checkpoint_dir):
                 os.makedirs(self.checkpoint_dir)
@@ -53,6 +63,9 @@ class Gan(object):
             if not os.path.exists(self.sample_dir):
                 os.makedirs(self.sample_dir)
                 print("create sample directory")
+            if not os.path.exists(self.lists_dir):
+                os.makedirs(self.lists_dir)
+                print("create lists directory")
 
     def encoder(self, images, is_training, reuse=False):
         with tf.variable_scope("generator"):
@@ -72,13 +85,13 @@ class Gan(object):
 
             e1 = conv2d(images, self.generator_dim, scope="g_e1_conv")
             encode_layers["e1"] = e1
-            e2 = encode_layer(e1, self.generator_dim * 2, 2, dropout=True)
-            e3 = encode_layer(e2, self.generator_dim * 4, 3, dropout=True)
-            e4 = encode_layer(e3, self.generator_dim * 8, 4, dropout=True)
-            e5 = encode_layer(e4, self.generator_dim * 8, 5, dropout=True)
-            e6 = encode_layer(e5, self.generator_dim * 8, 6, dropout=True)
-            e7 = encode_layer(e6, self.generator_dim * 8, 7, dropout=True)
-            e8 = encode_layer(e7, self.generator_dim * 8, 8, dropout=True)
+            e2 = encode_layer(e1, self.generator_dim * 2, 2, dropout=self.dropout)
+            e3 = encode_layer(e2, self.generator_dim * 4, 3, dropout=self.dropout)
+            e4 = encode_layer(e3, self.generator_dim * 8, 4, dropout=self.dropout)
+            e5 = encode_layer(e4, self.generator_dim * 8, 5, dropout=self.dropout)
+            e6 = encode_layer(e5, self.generator_dim * 8, 6, dropout=self.dropout)
+            e7 = encode_layer(e6, self.generator_dim * 8, 7, dropout=self.dropout)
+            e8 = encode_layer(e7, self.generator_dim * 8, 8, dropout=self.dropout)
 
             return e8, encode_layers
 
@@ -106,10 +119,10 @@ class Gan(object):
                               dropout=True)
             d2 = decode_layer(d1, s64, self.generator_dim * 8, layer=2, enc_layer=encoding_layers["e6"], dropout=True)
             d3 = decode_layer(d2, s32, self.generator_dim * 8, layer=3, enc_layer=encoding_layers["e5"], dropout=True)
-            d4 = decode_layer(d3, s16, self.generator_dim * 8, layer=4, enc_layer=encoding_layers["e4"], dropout=True)
-            d5 = decode_layer(d4, s8, self.generator_dim * 4, layer=5, enc_layer=encoding_layers["e3"], dropout=True)
-            d6 = decode_layer(d5, s4, self.generator_dim * 2, layer=6, enc_layer=encoding_layers["e2"], dropout=True)
-            d7 = decode_layer(d6, s2, self.generator_dim, layer=7, enc_layer=encoding_layers["e1"], dropout=True)
+            d4 = decode_layer(d3, s16, self.generator_dim * 8, layer=4, enc_layer=encoding_layers["e4"], dropout=self.dropout)
+            d5 = decode_layer(d4, s8, self.generator_dim * 4, layer=5, enc_layer=encoding_layers["e3"], dropout=self.dropout)
+            d6 = decode_layer(d5, s4, self.generator_dim * 2, layer=6, enc_layer=encoding_layers["e2"], dropout=self.dropout)
+            d7 = decode_layer(d6, s2, self.generator_dim, layer=7, enc_layer=encoding_layers["e1"], dropout=self.dropout)
             d8 = decode_layer(d7, s, self.output_filters, layer=8, enc_layer=None, do_concat=False)
 
             output = tf.nn.tanh(d8)  # scale to (-1, 1)
@@ -131,13 +144,13 @@ class Gan(object):
             if reuse:
                 tf.get_variable_scope().reuse_variables()
             h0 = lrelu(conv2d(image, self.discriminator_dim, scope="d_h0_conv"))
-            h0 = tf.nn.dropout(h0, 0.5)
+            h0 = tf.nn.dropout(h0, self.dropout_rate)
             h1 = lrelu(batch_norm(conv2d(h0, self.discriminator_dim * 2, scope="d_h1_conv"),
                                   is_training, scope="d_bn_1"))
-            h1 = tf.nn.dropout(h1, 0.5)
+            h1 = tf.nn.dropout(h1, self.dropout_rate)
             h2 = lrelu(batch_norm(conv2d(h1, self.discriminator_dim * 4, scope="d_h2_conv"),
                                   is_training, scope="d_bn_2"))
-            h2 = tf.nn.dropout(h2, 0.5)
+            h2 = tf.nn.dropout(h2, self.dropout_rate)
             h3 = lrelu(batch_norm(conv2d(h2, self.discriminator_dim * 8, sh=1, sw=1, scope="d_h3_conv"),
                                   is_training, scope="d_bn_3"))
             # real or fake binary loss
@@ -308,8 +321,17 @@ class Gan(object):
         else:
             print("Val sample: d_loss: %.5f, g_loss: %.5f, l1_loss: %.5f, l2_edge_loss: %.5f" % (d_loss, g_loss, l1_loss, l2_edge_loss))
 
-        merged_fake_images = merge(scale_back(fake_imgs), [self.batch_size, 1])
-        merged_real_images = merge(scale_back(real_imgs), [self.batch_size, 1])
+        fake_imgs = scale_back(fake_imgs)
+        real_imgs = scale_back(real_imgs)
+
+        binary_fake_imgs = np.round(fake_imgs)
+        binary_real_imgs = np.round(real_imgs)
+        intersection = np.count_nonzero(np.multiply(binary_fake_imgs, binary_real_imgs))
+        union = np.count_nonzero(np.add(binary_fake_imgs, binary_real_imgs))
+        iou = intersection/union
+
+        merged_fake_images = merge(fake_imgs, [self.batch_size, 1])
+        merged_real_images = merge(real_imgs, [self.batch_size, 1])
         merged_source_images = merge(scale_back(source_images), [self.batch_size, 1])
         merged_pair = np.concatenate([merged_real_images, merged_fake_images, merged_source_images], axis=1)
 
@@ -324,6 +346,28 @@ class Gan(object):
         else:
             sample_img_path = os.path.join(model_sample_dir, "val_sample_%02d_%04d.png" % (epoch, step))
         misc.imsave(sample_img_path, merged_pair[:,:,0])
+
+        return l1_loss, l2_edge_loss, iou
+
+    def save_lists():
+        model_id, _ = self.get_model_id_and_dir()
+        model_lists_dir = os.path.join(self.lists_dir, model_id)
+        if not os.path.exists(model_lists_dir):
+            os.makedirs(model_lists_dir)
+
+        counter_path = os.path.join(model_lists_dir, "counter_list.obj")
+        train_path = os.path.join(model_lists_dir, "train_lists.obj")
+        val_path = os.path.join(model_lists_dir, "val_lists.obj")
+        with open(train_path, 'wb') as t:
+            pickle.dump(self.train_l1_loss_list, t)
+            pickle.dump(self.train_l2_edge_loss_list, t)
+            pickle.dump(self.train_iou_list, t)
+        with open(val_path, 'wb') as v:
+            pickle.dump(self.val_l1_loss_list, v)
+            pickle.dump(self.val_l2_edge_loss_list, v)
+            pickle.dump(self.val_iou_list, v)
+        with open(counter_path, 'wb') as c:
+            pickle.dump(self.counter_list, c)
 
     def export_generator(self, save_dir, model_dir, model_name="gen_model"):
         saver = tf.train.Saver()
@@ -447,8 +491,16 @@ class Gan(object):
 
                 if counter % sample_steps == 0:
                     # sample the current model states with val data
-                    self.validate_model(val_batch_iter, ei, counter)
-                    self.validate_model(train_val_batch_iter, ei, counter, is_train_data=True)
+                    val_l1_loss, val_l2_edge_loss, val_iou = self.validate_model(val_batch_iter, ei, counter)
+                    train_l1_loss, train_l2_edge_loss, train_iou = self.validate_model(train_val_batch_iter, ei, counter, is_train_data=True)
+
+                    self.counter_list.append(counter)
+                    self.train_l1_loss_list.append(train_l1_loss)
+                    self.train_l2_edge_loss_list.append(train_l2_edge_loss)
+                    self.train_iou_list.append(train_iou)
+                    self.val_l1_loss_list.append(val_l1_loss)
+                    self.val_l2_edge_loss_list.append(val_l2_edge_loss)
+                    self.val_iou_list.append(val_iou)
 
                 if counter % checkpoint_steps == 0:
                     print("Checkpoint: save checkpoint step %d" % counter)
@@ -456,3 +508,7 @@ class Gan(object):
         # save the last checkpoint
         print("Checkpoint: last checkpoint step %d" % counter)
         self.checkpoint(saver, counter)
+
+        # Save loss and iou lists
+        print("Saving counter, loss and iou lists:")
+        self.save_lists()
