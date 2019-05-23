@@ -5,3 +5,4 @@ Experiment id's with their corresponding parameter values (when different from d
 4 - gan 200 epochs, l2 edge loss (penalty=15)
 5 - gan 200 epochs, no edge loss, more dropout
 6 - gan 200 epochs, l2 edge loss (penalty=15), more dropout
+7 - gan 20 epochs (test for lists)
