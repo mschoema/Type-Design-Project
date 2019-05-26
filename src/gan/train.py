@@ -14,6 +14,7 @@ parser.add_argument('--experiment_dir', dest='experiment_dir', default="../../ou
                     help='experiment directory, data, samples,checkpoints,etc')
 parser.add_argument('--experiment_id', dest='experiment_id', type=int, default=0,
                     help='sequence id for the experiments you prepare to run')
+parser.add_argument('--data_path', dest='data', type=str, default="data", help="path to use for the data provider (default: 'data')")
 parser.add_argument('--image_size', dest='image_size', type=int, default=256,
                     help="size of your input and output image")
 parser.add_argument('--L1_penalty', dest='L1_penalty', type=int, default=100, help='weight for L1 loss')
@@ -43,7 +44,7 @@ def main(_):
     with tf.Session(config=config) as sess:
         model = Gan(args.experiment_dir, batch_size=args.batch_size, experiment_id=args.experiment_id,
                      input_width=args.image_size, output_width=args.image_size, L1_penalty=args.L1_penalty,
-                     L2_edge_penalty=args.L2_edge_penalty, Lconst_penalty=args.Lconst_penalty, dropout=args.dropout)
+                     L2_edge_penalty=args.L2_edge_penalty, Lconst_penalty=args.Lconst_penalty, dropout=args.dropout, data=args.data)
         model.register_session(sess)
         model.build_model(is_training=True)
         fine_tune_list = None

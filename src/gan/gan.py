@@ -23,7 +23,8 @@ SummaryHandle = namedtuple("SummaryHandle", ["d_merged", "g_merged"])
 
 class Gan(object):
     def __init__(self, experiment_dir=None, experiment_id=0, batch_size=16, input_width=256, output_width=256,
-                 generator_dim=64, discriminator_dim=64, L1_penalty=100, L2_edge_penalty=100, Lconst_penalty=15, dropout=False, input_filters=1, output_filters=1):
+                 generator_dim=64, discriminator_dim=64, L1_penalty=100, L2_edge_penalty=15, Lconst_penalty=15,
+                 dropout=False, input_filters=1, output_filters=1, data="data"):
         self.experiment_dir = experiment_dir
         self.experiment_id = experiment_id
         self.batch_size = batch_size
@@ -37,18 +38,17 @@ class Gan(object):
         self.dropout = dropout
         self.input_filters = input_filters
         self.output_filters = output_filters
+        self.data = data
         self.counter_list = []
         self.train_l1_loss_list = []
-        self.train_l2_edge_loss_list = []
         self.train_iou_list = []
         self.val_l1_loss_list = []
-        self.val_l2_edge_loss_list = []
         self.val_iou_list = []
         # init all the directories
         self.sess = None
         # experiment_dir is needed for training
         if experiment_dir:
-            self.data_dir = os.path.join(self.experiment_dir, "data")
+            self.data_dir = os.path.join(self.experiment_dir, self.data)
             self.checkpoint_dir = os.path.join(self.experiment_dir, "checkpoint")
             self.sample_dir = os.path.join(self.experiment_dir, "sample")
             self.log_dir = os.path.join(self.experiment_dir, "logs")
@@ -316,7 +316,7 @@ class Gan(object):
                                                 })
         return fake_images, real_images, source_images, d_loss, g_loss, l1_loss, l2_edge_loss
 
-    def validate_model(self, val_iter, epoch, step, is_train_data=False):
+    def sample_model(self, val_iter, epoch, step, is_train_data=False):
         images = next(val_iter)
         fake_imgs, real_imgs, source_images, d_loss, g_loss, l1_loss, l2_edge_loss = self.generate_fake_samples(images)
         if is_train_data:
@@ -326,12 +326,6 @@ class Gan(object):
 
         fake_imgs = scale_back(fake_imgs)
         real_imgs = scale_back(real_imgs)
-
-        binary_fake_imgs = np.round(fake_imgs)
-        binary_real_imgs = np.round(real_imgs)
-        intersection = np.count_nonzero(np.multiply(binary_fake_imgs, binary_real_imgs))
-        union = np.count_nonzero(np.add(binary_fake_imgs, binary_real_imgs))
-        iou = intersection/union
 
         merged_fake_images = merge(fake_imgs, [self.batch_size, 1])
         merged_real_images = merge(real_imgs, [self.batch_size, 1])
@@ -350,7 +344,43 @@ class Gan(object):
             sample_img_path = os.path.join(model_sample_dir, "val_sample_%02d_%04d.png" % (epoch, step))
         misc.imsave(sample_img_path, merged_pair[:,:,0])
 
-        return l1_loss, l2_edge_loss, iou
+
+    def validate_model(self, data_provider):
+        train_iter = data_provider.get_train_iter(self.batch_size)
+        val_iter = data_provider.get_val_iter(self.batch_size)
+
+
+
+        total_train_l1_loss = 0
+        total_train_iou = 0
+        total_val_l1_loss = 0
+        total_val_iou = 0
+
+        train_count = 0
+        for bid, batch in enumerate(train_iter):
+            train_count += 1
+            fake_imgs, real_imgs, source_images, d_loss, g_loss, l1_loss, _ = self.generate_fake_samples(images)
+            binary_fake_imgs = np.round(fake_imgs)
+            binary_real_imgs = np.round(real_imgs)
+            intersection = np.count_nonzero(np.multiply(binary_fake_imgs, binary_real_imgs))
+            union = np.count_nonzero(np.add(binary_fake_imgs, binary_real_imgs))
+            iou = intersection/union
+            total_train_l1_loss += l1_loss
+            total_train_iou += iou
+
+        val_count = 0
+        for bid, batch in enumerate(train_iter):
+            val_count += 1
+            fake_imgs, real_imgs, source_images, d_loss, g_loss, l1_loss, _ = self.generate_fake_samples(images)
+            binary_fake_imgs = np.round(fake_imgs)
+            binary_real_imgs = np.round(real_imgs)
+            intersection = np.count_nonzero(np.multiply(binary_fake_imgs, binary_real_imgs))
+            union = np.count_nonzero(np.add(binary_fake_imgs, binary_real_imgs))
+            iou = intersection/union
+            total_val_l1_loss += l1_loss
+            total_val_iou += iou
+
+        return total_train_l1_loss/train_count, total_train_iou/train_count, total_val_l1_loss/val_count, total_val_iou/val_count
 
     def save_lists(self):
         model_id, _ = self.get_model_id_and_dir()
@@ -363,11 +393,9 @@ class Gan(object):
         val_path = os.path.join(model_lists_dir, "val_lists.obj")
         with open(train_path, 'wb') as t:
             pickle.dump(self.train_l1_loss_list, t)
-            pickle.dump(self.train_l2_edge_loss_list, t)
             pickle.dump(self.train_iou_list, t)
         with open(val_path, 'wb') as v:
             pickle.dump(self.val_l1_loss_list, v)
-            pickle.dump(self.val_l2_edge_loss_list, v)
             pickle.dump(self.val_iou_list, v)
         with open(counter_path, 'wb') as c:
             pickle.dump(self.counter_list, c)
@@ -424,8 +452,8 @@ class Gan(object):
         # filter by one type of labels
         data_provider = TrainDataProvider(self.data_dir, filter_by=fine_tune)
         total_batches = data_provider.compute_total_batch_num(self.batch_size)
-        val_batch_iter = data_provider.get_val_iter(self.batch_size)
-        train_val_batch_iter = data_provider.get_train_val_iter(self.batch_size)
+        val_batch_iter = data_provider.get_infinite_val_iter(self.batch_size)
+        train_val_batch_iter = data_provider.get_infinite_train_iter(self.batch_size)
 
         saver = tf.train.Saver(max_to_keep=3)
         summary_writer = tf.summary.FileWriter(self.log_dir, self.sess.graph)
@@ -493,21 +521,22 @@ class Gan(object):
                 summary_writer.add_summary(g_summary, counter)
 
                 if counter % sample_steps == 0:
-                    # sample the current model states with val data
-                    val_l1_loss, val_l2_edge_loss, val_iou = self.validate_model(val_batch_iter, ei, counter)
-                    train_l1_loss, train_l2_edge_loss, train_iou = self.validate_model(train_val_batch_iter, ei, counter, is_train_data=True)
-
-                    self.counter_list.append(counter)
-                    self.train_l1_loss_list.append(train_l1_loss)
-                    self.train_l2_edge_loss_list.append(train_l2_edge_loss)
-                    self.train_iou_list.append(train_iou)
-                    self.val_l1_loss_list.append(val_l1_loss)
-                    self.val_l2_edge_loss_list.append(val_l2_edge_loss)
-                    self.val_iou_list.append(val_iou)
+                    # sample the current model states with train and val data
+                    self.sample_model(val_batch_iter, ei, counter)
+                    self.sample_model(train_val_batch_iter, ei, counter, is_train_data=True)
 
                 if counter % checkpoint_steps == 0:
                     print("Checkpoint: save checkpoint step %d" % counter)
                     self.checkpoint(saver, counter)
+
+            # validate the current model states with train and val data
+            train_l1_loss, train_iou, val_l1_loss, val_iou = self.validate_model(data_provider)
+            self.counter_list.append(counter)
+            self.train_l1_loss_list.append(train_l1_loss)
+            self.train_iou_list.append(train_iou)
+            self.val_l1_loss_list.append(val_l1_loss)
+            self.val_iou_list.append(val_iou)
+
         # save the last checkpoint
         print("Checkpoint: last checkpoint step %d" % counter)
         self.checkpoint(saver, counter)
