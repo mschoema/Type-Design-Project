@@ -529,7 +529,7 @@ class Gan(object):
 
             # validate the current model states with train and val data
             train_l1_loss, train_iou, val_l1_loss, val_iou = self.validate_model(data_provider)
-            self.counter_list.append(counter)
+            self.counter_list.append(ei)
             self.train_l1_loss_list.append(train_l1_loss)
             self.train_iou_list.append(train_iou)
             self.val_l1_loss_list.append(val_l1_loss)

@@ -85,7 +85,7 @@ class TrainDataProvider(object):
 
     def get_infinite_train_iter(self, batch_size, shuffle=False):
         """
-        Validation iterator runs forever
+        Training iterator runs forever
         """
         training_examples = self.train.examples[:]
         if shuffle:
