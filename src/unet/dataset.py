@@ -32,7 +32,7 @@ class PickledImageProvider(object):
             return examples
 
 
-def get_batch_iter(examples, batch_size, input_type="normal", target_type="normal"):
+def get_batch_iter(examples, batch_size):
     # the transpose ops requires deterministic
     # batch size, thus comes the padding
     padded = pad_seq(examples, batch_size)
@@ -43,20 +43,7 @@ def get_batch_iter(examples, batch_size, input_type="normal", target_type="norma
             img_A, img_B = read_split_image(img)
             img_A = normalize_image(img_A)
             img_B = normalize_image(img_B)
-
-            if input_type == "blurred_target":
-                pass
-            elif input_type == "translated_input":
-                pass
-            else:
-                input = img_B
-
-            if target_type == "negative":
-                target = np.multiply(img_A, img_B)
-            else:
-                target = img_A
-
-            return np.concatenate([target[:,:,np.newaxis], input[:,:,np.newaxis]], axis=2)
+            return np.concatenate([img_A[:,:,np.newaxis], img_B[:,:,np.newaxis]], axis=2)
         finally:
             img.close()
 
@@ -71,15 +58,13 @@ def get_batch_iter(examples, batch_size, input_type="normal", target_type="norma
 
 
 class TrainDataProvider(object):
-    def __init__(self, data_dir, train_name="train.obj", val_name="val.obj", filter_by=None, input_type="normal", target_type="normal"):
+    def __init__(self, data_dir, train_name="train.obj", val_name="val.obj", filter_by=None):
         self.data_dir = data_dir
         self.filter_by = filter_by
         self.train_path = os.path.join(self.data_dir, train_name)
         self.val_path = os.path.join(self.data_dir, val_name)
         self.train = PickledImageProvider(self.train_path)
         self.val = PickledImageProvider(self.val_path)
-        self.input_type = input_type
-        self.target_type = target_type
         if self.filter_by:
             print("filter by label ->", filter_by)
             self.train.examples = filter(lambda e: e[0] in self.filter_by, self.train.examples)
@@ -90,21 +75,27 @@ class TrainDataProvider(object):
         training_examples = self.train.examples[:]
         if shuffle:
             np.random.shuffle(training_examples)
-        return get_batch_iter(training_examples, batch_size, self.input_type, self.target_type)
+        return get_batch_iter(training_examples, batch_size)
 
-    def get_train_val_iter(self, batch_size, shuffle=True):
+    def get_val_iter(self, batch_size, shuffle=False):
+        val_examples = self.val.examples[:]
+        if shuffle:
+            np.random.shuffle(val_examples)
+        return get_batch_iter(val_examples, batch_size)
+
+    def get_infinite_train_iter(self, batch_size, shuffle=False):
         """
-        Validation iterator runs forever
+        Training iterator runs forever
         """
         training_examples = self.train.examples[:]
         if shuffle:
             np.random.shuffle(training_examples)
         while True:
-            train_val_batch_iter = get_batch_iter(training_examples, batch_size, self.input_type, self.target_type)
+            train_val_batch_iter = get_batch_iter(training_examples, batch_size)
             for examples in train_val_batch_iter:
                 yield examples
 
-    def get_val_iter(self, batch_size, shuffle=True):
+    def get_infinite_val_iter(self, batch_size, shuffle=False):
         """
         Validation iterator runs forever
         """
@@ -112,7 +103,7 @@ class TrainDataProvider(object):
         if shuffle:
             np.random.shuffle(val_examples)
         while True:
-            val_batch_iter = get_batch_iter(val_examples, batch_size, self.input_type, self.target_type)
+            val_batch_iter = get_batch_iter(val_examples, batch_size)
             for examples in val_batch_iter:
                 yield examples
 
@@ -129,14 +120,12 @@ class TrainDataProvider(object):
 
 
 class InjectDataProvider(object):
-    def __init__(self, obj_path, input_type="normal", target_type="normal"):
+    def __init__(self, obj_path):
         self.data = PickledImageProvider(obj_path)
-        self.input_type = input_type
-        self.target_type = target_type
         print("examples -> %d" % len(self.data.examples))
 
     def get_random_iter(self, batch_size):
         examples = self.data.examples[:]
-        batch_iter = get_batch_iter(examples, batch_size, self.input_type, self.target_type)
+        batch_iter = get_batch_iter(examples, batch_size)
         for images in batch_iter:
             yield images

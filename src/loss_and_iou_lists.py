@@ -34,11 +34,9 @@ def main(experiment_ids):
         val_path = os.path.join(experiment_path, "val_lists.obj")
         with open(train_path, 'rb') as t:
             train_l1_loss_list = pickle.load(t)
-            train_l2_edge_loss_list = pickle.load(t)
             train_iou_list = pickle.load(t)
         with open(val_path, 'rb') as v:
             val_l1_loss_list = pickle.load(v)
-            val_l2_edge_loss_list = pickle.load(v)
             val_iou_list = pickle.load(v)
         with open(counter_path, 'rb') as c:
             counter_list = pickle.load(c)
@@ -55,92 +53,6 @@ def main(experiment_ids):
 
     plt.figlegend(available_experiment_ids, loc = 'upper center', ncol=n, labelspacing=0. )
     plt.show()
-
-def main2():
-    plt.figure(figsize=(12,18))
-
-    model_lists_dirs = ["../outputFiles/results_from_server/lists/8","../outputFiles/results_from_server/lists/9","../outputFiles/results_from_server/lists/10"]
-    
-    model_lists_dir = model_lists_dirs[0]
-    counter_path = os.path.join(model_lists_dir, "counter_list.obj")
-    train_path = os.path.join(model_lists_dir, "train_lists.obj")
-    val_path = os.path.join(model_lists_dir, "val_lists.obj")
-
-    with open(train_path, 'rb') as t:
-        train_l1_loss_list = pickle.load(t)
-        train_l2_edge_loss_list = pickle.load(t)
-        train_iou_list = pickle.load(t)
-    with open(val_path, 'rb') as v:
-        val_l1_loss_list = pickle.load(v)
-        val_l2_edge_loss_list = pickle.load(v)
-        val_iou_list = pickle.load(v)
-    with open(counter_path, 'rb') as c:
-        counter_list = pickle.load(c)
-
-    plt.subplot(321)
-    plt.plot(counter_list, val_l1_loss_list, 'r-', counter_list, train_l1_loss_list, 'b-')
-    plt.title('l1_loss')
-    # plt.subplot(132)
-    # plt.plot(counter_list, val_l2_edge_loss_list, 'r-', counter_list, train_l2_edge_loss_list, 'b-')
-    # plt.title('l2_edge_loss')
-    plt.subplot(322)
-    plt.title('iou')
-    plt.plot(counter_list, val_iou_list, 'r-', counter_list, train_iou_list, 'b-')
-    
-    model_lists_dir = model_lists_dirs[1]
-    counter_path = os.path.join(model_lists_dir, "counter_list.obj")
-    train_path = os.path.join(model_lists_dir, "train_lists.obj")
-    val_path = os.path.join(model_lists_dir, "val_lists.obj")
-
-    with open(train_path, 'rb') as t:
-        train_l1_loss_list = pickle.load(t)
-        train_l2_edge_loss_list = pickle.load(t)
-        train_iou_list = pickle.load(t)
-    with open(val_path, 'rb') as v:
-        val_l1_loss_list = pickle.load(v)
-        val_l2_edge_loss_list = pickle.load(v)
-        val_iou_list = pickle.load(v)
-    with open(counter_path, 'rb') as c:
-        counter_list = pickle.load(c)
-
-    plt.subplot(323)
-    plt.plot(counter_list, val_l1_loss_list, 'r-', counter_list, train_l1_loss_list, 'b-')
-    plt.title('l1_loss')
-    # plt.subplot(132)
-    # plt.plot(counter_list, val_l2_edge_loss_list, 'r-', counter_list, train_l2_edge_loss_list, 'b-')
-    # plt.title('l2_edge_loss')
-    plt.subplot(324)
-    plt.title('iou')
-    plt.plot(counter_list, val_iou_list, 'r-', counter_list, train_iou_list, 'b-')
-
-    model_lists_dir = model_lists_dirs[2]
-    counter_path = os.path.join(model_lists_dir, "counter_list.obj")
-    train_path = os.path.join(model_lists_dir, "train_lists.obj")
-    val_path = os.path.join(model_lists_dir, "val_lists.obj")
-
-    with open(train_path, 'rb') as t:
-        train_l1_loss_list = pickle.load(t)
-        train_l2_edge_loss_list = pickle.load(t)
-        train_iou_list = pickle.load(t)
-    with open(val_path, 'rb') as v:
-        val_l1_loss_list = pickle.load(v)
-        val_l2_edge_loss_list = pickle.load(v)
-        val_iou_list = pickle.load(v)
-    with open(counter_path, 'rb') as c:
-        counter_list = pickle.load(c)
-
-    plt.subplot(325)
-    plt.plot(counter_list, val_l1_loss_list, 'r-', counter_list, train_l1_loss_list, 'b-')
-    plt.title('l1_loss')
-    # plt.subplot(132)
-    # plt.plot(counter_list, val_l2_edge_loss_list, 'r-', counter_list, train_l2_edge_loss_list, 'b-')
-    # plt.title('l2_edge_loss')
-    plt.subplot(326)
-    plt.title('iou')
-    plt.plot(counter_list, val_iou_list, 'r-', counter_list, train_iou_list, 'b-')
-
-    plt.show()
-
 
 if __name__ == '__main__':
     if (len(sys.argv) == 1):

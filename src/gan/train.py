@@ -25,7 +25,7 @@ parser.add_argument('--epoch', dest='epoch', type=int, default=200, help='number
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=16, help='number of examples in batch')
 parser.add_argument('--lr', dest='lr', type=float, default=0.001, help='initial learning rate for adam')
 parser.add_argument('--schedule', dest='schedule', type=int, default=10, help='number of epochs to half learning rate')
-parser.add_argument('--resume', dest='resume', type=int, default=1, help='resume from previous training')
+parser.add_argument('--resume', dest='resume', type=int, default=0, help='resume from previous training')
 parser.add_argument('--freeze_encoder', dest='freeze_encoder', type=int, default=0,
                     help="freeze encoder weights during training")
 parser.add_argument('--fine_tune', dest='fine_tune', type=str, default=None,
@@ -44,7 +44,8 @@ def main(_):
     with tf.Session(config=config) as sess:
         model = Gan(args.experiment_dir, batch_size=args.batch_size, experiment_id=args.experiment_id,
                      input_width=args.image_size, output_width=args.image_size, L1_penalty=args.L1_penalty,
-                     L2_edge_penalty=args.L2_edge_penalty, Lconst_penalty=args.Lconst_penalty, dropout=args.dropout, data=args.data)
+                     L2_edge_penalty=args.L2_edge_penalty, Lconst_penalty=args.Lconst_penalty,
+                     dropout=args.dropout, data=args.data)
         model.register_session(sess)
         model.build_model(is_training=True)
         fine_tune_list = None

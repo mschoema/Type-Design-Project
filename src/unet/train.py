@@ -14,18 +14,18 @@ parser.add_argument('--experiment_dir', dest='experiment_dir', default="../../ou
                     help='experiment directory, data, samples,checkpoints,etc')
 parser.add_argument('--experiment_id', dest='experiment_id', type=int, default=0,
                     help='sequence id for the experiments you prepare to run')
+parser.add_argument('--data_path', dest='data', type=str, default="data", help="path to use for the data provider (default: 'data')")
 parser.add_argument('--image_size', dest='image_size', type=int, default=256,
                     help="size of your input and output image")
-parser.add_argument('--input_type', dest='input_type', type=str, default="normal", help="Possible values: normal, blurred_input, translated_input")
-parser.add_argument('--target_type', dest='target_type', type=str, default="normal", help="Possible values: normal, negative")
 parser.add_argument('--L1_penalty', dest='L1_penalty', type=int, default=100, help='weight for L1 loss')
 parser.add_argument('--L2_edge_penalty', dest='L2_edge_penalty', type=int, default=15, help='weight for L2 edge loss')
 parser.add_argument('--Lconst_penalty', dest='Lconst_penalty', type=int, default=15, help='weight for const loss')
-parser.add_argument('--epoch', dest='epoch', type=int, default=100, help='number of epoch')
+parser.add_argument('--dropout', dest='dropout', type=bool, default=False, help='set to true for extra dropout')
+parser.add_argument('--epoch', dest='epoch', type=int, default=200, help='number of epoch')
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=16, help='number of examples in batch')
 parser.add_argument('--lr', dest='lr', type=float, default=0.001, help='initial learning rate for adam')
 parser.add_argument('--schedule', dest='schedule', type=int, default=10, help='number of epochs to half learning rate')
-parser.add_argument('--resume', dest='resume', type=int, default=1, help='resume from previous training')
+parser.add_argument('--resume', dest='resume', type=int, default=0, help='resume from previous training')
 parser.add_argument('--freeze_encoder', dest='freeze_encoder', type=int, default=0,
                     help="freeze encoder weights during training")
 parser.add_argument('--fine_tune', dest='fine_tune', type=str, default=None,
@@ -43,7 +43,9 @@ def main(_):
 
     with tf.Session(config=config) as sess:
         model = UNet(args.experiment_dir, batch_size=args.batch_size, experiment_id=args.experiment_id,
-                     input_width=args.image_size, output_width=args.image_size, L1_penalty=args.L1_penalty, L2_edge_penalty=args.L2_edge_penalty, Lconst_penalty=args.Lconst_penalty, input_type=args.input_type, target_type=args.target_type)
+                     input_width=args.image_size, output_width=args.image_size, L1_penalty=args.L1_penalty,
+                     L2_edge_penalty=args.L2_edge_penalty, Lconst_penalty=args.Lconst_penalty,
+                     dropout=args.dropout, data=args.data)
         model.register_session(sess)
         model.build_model(is_training=True)
         fine_tune_list = None

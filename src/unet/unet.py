@@ -22,7 +22,7 @@ SummaryHandle = namedtuple("SummaryHandle", ["g_merged"])
 
 class UNet(object):
     def __init__(self, experiment_dir=None, experiment_id=0, batch_size=16, input_width=256, output_width=256,
-                 generator_dim=64, L1_penalty=100, L2_edge_penalty Lconst_penalty=15, input_filters=1, output_filters=1, input_type="normal", target_type="normal"):
+                 generator_dim=64, L1_penalty=100, L2_edge_penalty=15, Lconst_penalty=15, dropout=False, input_filters=1, output_filters=1, data="data"):
         self.experiment_dir = experiment_dir
         self.experiment_id = experiment_id
         self.batch_size = batch_size
@@ -32,18 +32,24 @@ class UNet(object):
         self.L1_penalty = L1_penalty
         self.L2_edge_penalty = L2_edge_penalty
         self.Lconst_penalty = Lconst_penalty
+        self.dropout = dropout
         self.input_filters = input_filters
         self.output_filters = output_filters
-        self.input_type = input_type
-        self.target_type = target_type
+        self.data = data
+        self.counter_list = []
+        self.train_l1_loss_list = []
+        self.train_iou_list = []
+        self.val_l1_loss_list = []
+        self.val_iou_list = []
         # init all the directories
         self.sess = None
         # experiment_dir is needed for training
         if experiment_dir:
-            self.data_dir = os.path.join(self.experiment_dir, "data")
+            self.data_dir = os.path.join(self.experiment_dir, self.data)
             self.checkpoint_dir = os.path.join(self.experiment_dir, "checkpoint")
             self.sample_dir = os.path.join(self.experiment_dir, "sample")
             self.log_dir = os.path.join(self.experiment_dir, "logs")
+            self.lists_dir = os.path.join(self.experiment_dir, "lists")
 
             if not os.path.exists(self.checkpoint_dir):
                 os.makedirs(self.checkpoint_dir)
@@ -54,6 +60,9 @@ class UNet(object):
             if not os.path.exists(self.sample_dir):
                 os.makedirs(self.sample_dir)
                 print("create sample directory")
+            if not os.path.exists(self.lists_dir):
+                os.makedirs(self.lists_dir)
+                print("create lists directory")
 
     def encoder(self, images, is_training, reuse=False):
         with tf.variable_scope("generator"):
@@ -62,22 +71,24 @@ class UNet(object):
 
             encode_layers = dict()
 
-            def encode_layer(x, output_filters, layer):
+            def encode_layer(x, output_filters, layer, dropout=False):
                 act = lrelu(x)
                 conv = conv2d(act, output_filters=output_filters, scope="g_e%d_conv" % layer)
                 enc = batch_norm(conv, is_training, scope="g_e%d_bn" % layer)
+                if dropout:
+                    enc = tf.nn.dropout(enc, 0.5)
                 encode_layers["e%d" % layer] = enc
                 return enc
 
             e1 = conv2d(images, self.generator_dim, scope="g_e1_conv")
             encode_layers["e1"] = e1
-            e2 = encode_layer(e1, self.generator_dim * 2, 2)
-            e3 = encode_layer(e2, self.generator_dim * 4, 3)
-            e4 = encode_layer(e3, self.generator_dim * 8, 4)
-            e5 = encode_layer(e4, self.generator_dim * 8, 5)
-            e6 = encode_layer(e5, self.generator_dim * 8, 6)
-            e7 = encode_layer(e6, self.generator_dim * 8, 7)
-            e8 = encode_layer(e7, self.generator_dim * 8, 8)
+            e2 = encode_layer(e1, self.generator_dim * 2, 2, dropout=self.dropout)
+            e3 = encode_layer(e2, self.generator_dim * 4, 3, dropout=self.dropout)
+            e4 = encode_layer(e3, self.generator_dim * 8, 4, dropout=self.dropout)
+            e5 = encode_layer(e4, self.generator_dim * 8, 5, dropout=self.dropout)
+            e6 = encode_layer(e5, self.generator_dim * 8, 6, dropout=self.dropout)
+            e7 = encode_layer(e6, self.generator_dim * 8, 7, dropout=self.dropout)
+            e8 = encode_layer(e7, self.generator_dim * 8, 8, dropout=self.dropout)
 
             return e8, encode_layers
 
@@ -94,11 +105,6 @@ class UNet(object):
                 dec = deconv2d(tf.nn.relu(x), [self.batch_size, output_width,
                                                output_width, output_filters], scope="g_d%d_deconv" % layer)
                 if layer != 8:
-                    # IMPORTANT: normalization for last layer
-                    # Very important, otherwise GAN is unstable
-                    # Trying conditional instance normalization to
-                    # overcome the fact that batch normalization offers
-                    # different train/test statistics
                     dec = batch_norm(dec, is_training, scope="g_d%d_bn" % layer)
                 if dropout:
                     dec = tf.nn.dropout(dec, 0.5)
@@ -110,10 +116,10 @@ class UNet(object):
                               dropout=True)
             d2 = decode_layer(d1, s64, self.generator_dim * 8, layer=2, enc_layer=encoding_layers["e6"], dropout=True)
             d3 = decode_layer(d2, s32, self.generator_dim * 8, layer=3, enc_layer=encoding_layers["e5"], dropout=True)
-            d4 = decode_layer(d3, s16, self.generator_dim * 8, layer=4, enc_layer=encoding_layers["e4"])
-            d5 = decode_layer(d4, s8, self.generator_dim * 4, layer=5, enc_layer=encoding_layers["e3"])
-            d6 = decode_layer(d5, s4, self.generator_dim * 2, layer=6, enc_layer=encoding_layers["e2"])
-            d7 = decode_layer(d6, s2, self.generator_dim, layer=7, enc_layer=encoding_layers["e1"])
+            d4 = decode_layer(d3, s16, self.generator_dim * 8, layer=4, enc_layer=encoding_layers["e4"], dropout=self.dropout)
+            d5 = decode_layer(d4, s8, self.generator_dim * 4, layer=5, enc_layer=encoding_layers["e3"], dropout=self.dropout)
+            d6 = decode_layer(d5, s4, self.generator_dim * 2, layer=6, enc_layer=encoding_layers["e2"], dropout=self.dropout)
+            d7 = decode_layer(d6, s2, self.generator_dim, layer=7, enc_layer=encoding_layers["e1"], dropout=self.dropout)
             d8 = decode_layer(d7, s, self.output_filters, layer=8, enc_layer=None, do_concat=False)
 
             output = tf.nn.tanh(d8)  # scale to (-1, 1)
@@ -258,7 +264,7 @@ class UNet(object):
                                                 })
         return fake_images, real_images, source_images, g_loss, l1_loss, l2_edge_loss
 
-    def validate_model(self, val_iter, epoch, step, is_train_data=False):
+    def sample_model(self, val_iter, epoch, step, is_train_data=False):
         images = next(val_iter)
         fake_imgs, real_imgs, source_images, g_loss, l1_loss, l2_edge_loss = self.generate_fake_samples(images)
         if is_train_data:
@@ -283,6 +289,59 @@ class UNet(object):
             sample_img_path = os.path.join(model_sample_dir, "val_sample_%02d_%04d.png" % (epoch, step))
         misc.imsave(sample_img_path, merged_pair[:,:,0])
 
+    def validate_model(self, data_provider):
+        train_iter = data_provider.get_train_iter(self.batch_size)
+        val_iter = data_provider.get_val_iter(self.batch_size)
+
+        total_train_l1_loss = 0
+        total_train_iou = 0
+        total_val_l1_loss = 0
+        total_val_iou = 0
+
+        train_count = 0
+        for bid, batch in enumerate(train_iter):
+            train_count += 1
+            fake_imgs, real_imgs, _, _, l1_loss, _ = self.generate_fake_samples(batch)
+            binary_fake_imgs = np.round(fake_imgs)
+            binary_real_imgs = np.round(real_imgs)
+            intersection = np.count_nonzero(np.multiply(binary_fake_imgs, binary_real_imgs))
+            union = np.count_nonzero(np.add(binary_fake_imgs, binary_real_imgs))
+            iou = intersection/union
+            total_train_l1_loss += l1_loss
+            total_train_iou += iou
+
+        val_count = 0
+        for bid, batch in enumerate(val_iter):
+            val_count += 1
+            fake_imgs, real_imgs, _, _, l1_loss, _ = self.generate_fake_samples(batch)
+            binary_fake_imgs = np.round(fake_imgs)
+            binary_real_imgs = np.round(real_imgs)
+            intersection = np.count_nonzero(np.multiply(binary_fake_imgs, binary_real_imgs))
+            union = np.count_nonzero(np.add(binary_fake_imgs, binary_real_imgs))
+            iou = intersection/union
+            total_val_l1_loss += l1_loss
+            total_val_iou += iou
+
+        return total_train_l1_loss/train_count, total_train_iou/train_count, total_val_l1_loss/val_count, total_val_iou/val_count
+
+    def save_lists(self):
+        model_id, _ = self.get_model_id_and_dir()
+        model_lists_dir = os.path.join(self.lists_dir, model_id)
+        if not os.path.exists(model_lists_dir):
+            os.makedirs(model_lists_dir)
+
+        counter_path = os.path.join(model_lists_dir, "counter_list.obj")
+        train_path = os.path.join(model_lists_dir, "train_lists.obj")
+        val_path = os.path.join(model_lists_dir, "val_lists.obj")
+        with open(train_path, 'wb') as t:
+            pickle.dump(self.train_l1_loss_list, t)
+            pickle.dump(self.train_iou_list, t)
+        with open(val_path, 'wb') as v:
+            pickle.dump(self.val_l1_loss_list, v)
+            pickle.dump(self.val_iou_list, v)
+        with open(counter_path, 'wb') as c:
+            pickle.dump(self.counter_list, c)
+
     def export_generator(self, save_dir, model_dir, model_name="gen_model"):
         saver = tf.train.Saver()
         self.restore_model(saver, model_dir)
@@ -291,7 +350,7 @@ class UNet(object):
         gen_saver.save(self.sess, os.path.join(save_dir, model_name), global_step=0)
 
     def infer(self, source_obj, model_dir, save_dir):
-        source_provider = InjectDataProvider(source_obj, input_type=self.input_type, target_type=self.target_type)
+        source_provider = InjectDataProvider(source_obj)
 
         source_iter = source_provider.get_random_iter(self.batch_size)
 
@@ -327,15 +386,15 @@ class UNet(object):
             raise Exception("no session registered")
 
         learning_rate = tf.placeholder(tf.float32, name="learning_rate")
-        g_optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss_handle.g_loss, var_list=g_vars)
+        g_optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss_handle.g_loss, var_list=g_vars)
         tf.global_variables_initializer().run()
         real_data = input_handle.real_data
 
         # filter by one type of labels
-        data_provider = TrainDataProvider(self.data_dir, filter_by=fine_tune, input_type=self.input_type, target_type=self.target_type)
+        data_provider = TrainDataProvider(self.data_dir, filter_by=fine_tune)
         total_batches = data_provider.compute_total_batch_num(self.batch_size)
-        val_batch_iter = data_provider.get_val_iter(self.batch_size)
-        train_val_batch_iter = data_provider.get_train_val_iter(self.batch_size)
+        val_batch_iter = data_provider.get_infinite_val_iter(self.batch_size)
+        train_val_batch_iter = data_provider.get_infinite_train_iter(self.batch_size)
 
         saver = tf.train.Saver(max_to_keep=3)
         summary_writer = tf.summary.FileWriter(self.log_dir, self.sess.graph)
@@ -396,12 +455,25 @@ class UNet(object):
 
                 if counter % sample_steps == 0:
                     # sample the current model states with val data
-                    self.validate_model(val_batch_iter, ei, counter)
-                    self.validate_model(train_val_batch_iter, ei, counter, is_train_data=True)
+                    self.sample_model(val_batch_iter, ei, counter)
+                    self.sample_model(train_val_batch_iter, ei, counter, is_train_data=True)
 
                 if counter % checkpoint_steps == 0:
                     print("Checkpoint: save checkpoint step %d" % counter)
                     self.checkpoint(saver, counter)
+
+            # validate the current model states with train and val data
+            train_l1_loss, train_iou, val_l1_loss, val_iou = self.validate_model(data_provider)
+            self.counter_list.append(ei)
+            self.train_l1_loss_list.append(train_l1_loss)
+            self.train_iou_list.append(train_iou)
+            self.val_l1_loss_list.append(val_l1_loss)
+            self.val_iou_list.append(val_iou)
+
         # save the last checkpoint
         print("Checkpoint: last checkpoint step %d" % counter)
         self.checkpoint(saver, counter)
+
+        # Save loss and iou lists
+        print("Saving counter, loss and iou lists:")
+        self.save_lists()
