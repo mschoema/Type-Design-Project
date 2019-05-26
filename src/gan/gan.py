@@ -544,7 +544,3 @@ class Gan(object):
         # Save loss and iou lists
         print("Saving counter, loss and iou lists:")
         self.save_lists()
-        print("Val iou: ")
-        print(self.val_iou_list)
-        print("Train iou: ")
-        print(self.train_iou_list)
