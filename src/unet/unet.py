@@ -131,7 +131,7 @@ class UNet(object):
         return output, e8
 
     def edgeDetectionLayer(self, images):
-        (batch_size, h, w, d) = images.shape()
+        (batch_size, h, w, d) = images.shape
         edges = tf.image.sobel_edges(images)
         edges = tf.reshape(edges, (batch_size, h, w, 2*d))
         return edges
