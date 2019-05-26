@@ -349,8 +349,6 @@ class Gan(object):
         train_iter = data_provider.get_train_iter(self.batch_size)
         val_iter = data_provider.get_val_iter(self.batch_size)
 
-
-
         total_train_l1_loss = 0
         total_train_iou = 0
         total_val_l1_loss = 0
@@ -359,7 +357,7 @@ class Gan(object):
         train_count = 0
         for bid, batch in enumerate(train_iter):
             train_count += 1
-            fake_imgs, real_imgs, source_images, d_loss, g_loss, l1_loss, _ = self.generate_fake_samples(images)
+            fake_imgs, real_imgs, _, _, _, l1_loss, _ = self.generate_fake_samples(batch)
             binary_fake_imgs = np.round(fake_imgs)
             binary_real_imgs = np.round(real_imgs)
             intersection = np.count_nonzero(np.multiply(binary_fake_imgs, binary_real_imgs))
@@ -369,9 +367,9 @@ class Gan(object):
             total_train_iou += iou
 
         val_count = 0
-        for bid, batch in enumerate(train_iter):
+        for bid, batch in enumerate(val_iter):
             val_count += 1
-            fake_imgs, real_imgs, source_images, d_loss, g_loss, l1_loss, _ = self.generate_fake_samples(images)
+            fake_imgs, real_imgs, _, _, _, l1_loss, _ = self.generate_fake_samples(batch)
             binary_fake_imgs = np.round(fake_imgs)
             binary_real_imgs = np.round(real_imgs)
             intersection = np.count_nonzero(np.multiply(binary_fake_imgs, binary_real_imgs))
