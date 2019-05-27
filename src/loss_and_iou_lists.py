@@ -34,12 +34,16 @@ def main(experiment_ids):
         val_path = os.path.join(experiment_path, "val_lists.obj")
         with open(train_path, 'rb') as t:
             train_l1_loss_list = pickle.load(t)
+            #_ = pickle.load(t)
             train_iou_list = pickle.load(t)
         with open(val_path, 'rb') as v:
             val_l1_loss_list = pickle.load(v)
+            #_ = pickle.load(v)
             val_iou_list = pickle.load(v)
         with open(counter_path, 'rb') as c:
             counter_list = pickle.load(c)
+
+        print(val_iou_list[-15:])
         
         count += 1
         plt.subplot(221)

@@ -375,8 +375,11 @@ class Gan(object):
             intersection = np.count_nonzero(np.multiply(binary_fake_imgs, binary_real_imgs))
             union = np.count_nonzero(np.add(binary_fake_imgs, binary_real_imgs))
             iou = intersection/union
+            print(iou)
             total_val_l1_loss += l1_loss
             total_val_iou += iou
+
+        print(total_val_iou/val_count)
 
         return total_train_l1_loss/train_count, total_train_iou/train_count, total_val_l1_loss/val_count, total_val_iou/val_count
 
