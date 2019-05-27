@@ -15,3 +15,4 @@ Experiment id's with their corresponding parameter values (when different from d
 
 (useful validation lists)
 12 - gan 200 epochs, no l2 loss, no const loss, no dropout
+13 - unet 200 epochs, no l2 loss, no const loss, no dropout

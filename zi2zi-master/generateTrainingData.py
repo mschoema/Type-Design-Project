@@ -67,7 +67,10 @@ if __name__=="__main__":
 
     # make the training dataset
     for i in range(len(images)):
-        target = Image.new('1', (TARGET_WIDTH, UNIT_SIZE))
+        target1 = Image.new('1', (TARGET_WIDTH, UNIT_SIZE))
+        target2 = Image.new('1', (TARGET_WIDTH, UNIT_SIZE))
+        target3 = Image.new('1', (TARGET_WIDTH, UNIT_SIZE))
+        target4 = Image.new('1', (TARGET_WIDTH, UNIT_SIZE))
         left = 0
         right = UNIT_SIZE
         rough_image = Image.open(roughConvertOutPath+'/'+images[i])
@@ -76,10 +79,14 @@ if __name__=="__main__":
         imagefile.append(origin_image)
         imagefile.append(rough_image)
         for image in imagefile:
-            target.paste(image, (left, 0, right, UNIT_SIZE))
-            left += UNIT_SIZE 
-            right += UNIT_SIZE 
-            quality_value = 100 
-            target.save(trainPath+'0_'+str(i).zfill(4)+'.png', quality = quality_value)
-
-
+            target1.paste(image, (left, 0, right, UNIT_SIZE))
+            target2.paste(image.transpose(Image.FLIP_LEFT_RIGHT), (left, 0, right, UNIT_SIZE))
+            target3.paste(image.transpose(Image.FLIP_TOP_BOTTOM), (left, 0, right, UNIT_SIZE))
+            target4.paste(image.transpose(Image.ROTATE_180), (left, 0, right, UNIT_SIZE))
+            left += UNIT_SIZE
+            right += UNIT_SIZE
+        quality_value = 100 
+        target1.save(trainPath+'0_'+str(i).zfill(4)+'_'+"1"+'.png', quality = quality_value)
+        target2.save(trainPath+'0_'+str(i).zfill(4)+'_'+"2"+'.png', quality = quality_value)
+        target3.save(trainPath+'0_'+str(i).zfill(4)+'_'+"3"+'.png', quality = quality_value)
+        target4.save(trainPath+'0_'+str(i).zfill(4)+'_'+"4"+'.png', quality = quality_value)

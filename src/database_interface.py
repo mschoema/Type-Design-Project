@@ -238,28 +238,13 @@ def computeAndImportArrays(style):
         if ac.isComplete():
             images = [ac.character, ac.roughDefinition, ac.lossMap]
 
-            # images[1].save(OUTPUT_PATH + "/rough_1000/" + ac.style + "_" + ac.uid + ".png")
-            # images[0].save(OUTPUT_PATH + "/origin_1000/" + ac.style + "_" + ac.uid + ".png")
+            images[1].save(OUTPUT_PATH + "/rough_1000/" + ac.style + "_" + ac.uid + ".png")
+            images[0].save(OUTPUT_PATH + "/origin_1000/" + ac.style + "_" + ac.uid + ".png")
             # images[2].save(OUTPUT_PATH + "/lossmap_1000/" + ac.style + "_" + ac.uid + ".png")
 
             images[1].save(OUTPUT_PATH + ac.style + "/rough_1000/" + ac.uid + ".png")
             images[0].save(OUTPUT_PATH + ac.style + "/origin_1000/" + ac.uid + ".png")
             # images[2].save(OUTPUT_PATH + ac.style + "/lossmap_1000/" + ac.uid + ".png")
-
-            # widths, heights = zip(*(i.size for i in images))
-
-            # total_width = sum(widths)
-            # max_height = max(heights)
-
-            # new_im = Image.new('L', (total_width, max_height))
-
-            # x_offset = 0
-            # for im in images:
-            #   new_im.paste(im, (x_offset,0))
-            #   x_offset += im.size[0]
-
-            # new_im.save(OUTPUT_PATH + ac.style + "/" + ac.uid + ".png")
-            # sqlite_database.insertArrayCollection(ac)
         else:
             ac.printIncomplete()
     print("Done")
