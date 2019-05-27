@@ -303,8 +303,8 @@ class UNet(object):
         for bid, batch in enumerate(train_iter):
             train_count += 1
             fake_imgs, real_imgs, _, _, l1_loss, _ = self.generate_fake_samples(batch)
-            binary_fake_imgs = np.round(fake_imgs)
-            binary_real_imgs = np.round(real_imgs)
+            binary_fake_imgs = np.round(scale_back(fake_imgs))
+            binary_real_imgs = np.round(scale_back(real_imgs))
             intersection = np.count_nonzero(np.multiply(binary_fake_imgs, binary_real_imgs))
             union = np.count_nonzero(np.add(binary_fake_imgs, binary_real_imgs))
             iou = intersection/union
@@ -315,16 +315,13 @@ class UNet(object):
         for bid, batch in enumerate(val_iter):
             val_count += 1
             fake_imgs, real_imgs, _, _, l1_loss, _ = self.generate_fake_samples(batch)
-            binary_fake_imgs = np.round(fake_imgs)
-            binary_real_imgs = np.round(real_imgs)
+            binary_fake_imgs = np.round(scale_back(fake_imgs))
+            binary_real_imgs = np.round(scale_back(real_imgs))
             intersection = np.count_nonzero(np.multiply(binary_fake_imgs, binary_real_imgs))
             union = np.count_nonzero(np.add(binary_fake_imgs, binary_real_imgs))
             iou = intersection/union
-            print(iou)
             total_val_l1_loss += l1_loss
             total_val_iou += iou
-
-        print(total_val_iou/val_count)
 
         return total_train_l1_loss/train_count, total_train_iou/train_count, total_val_l1_loss/val_count, total_val_iou/val_count
 
