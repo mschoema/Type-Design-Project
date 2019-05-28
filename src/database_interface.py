@@ -11,7 +11,7 @@ from array_display import display_array
 from loss_map import compute_loss_map
 import sqlite_database
 from sqlite_database import openDatabase, closeDatabase
-from character_to_unicode import getUid
+import copy
 
 """
 Converting numpy array to binary and back for insertion in sql
@@ -60,7 +60,22 @@ def fillDatabase():
     closeDatabase(conn)
     print("Done")
 
-def updateDatabase(path_to_database):
+def updateDatabase(path_to_database, path_to_char_to_uid):
+
+    def getCharToUid():
+        char_to_uid_dic = {}
+        with open(path_to_char_to_uid, encoding="utf16") as csvfile:
+            fileReader = csv.reader(csvfile, delimiter='\t')
+            count = 0
+            for row in fileReader:
+                if count == 0:
+                    count += 1
+                    continue
+                char_to_uid_dic.update({row[0]: row[1]})
+        return char_to_uid_dic
+
+    def getUid(char):
+        return char_to_uid_dic.get(char)
 
     def readRow(row):
         try:
@@ -79,6 +94,7 @@ def updateDatabase(path_to_database):
     print("Updating database")
     characters = sqlite_database.getUnicodeList()
     waitingList = []
+    char_to_uid_dic = getCharToUid()
     with open(path_to_database, encoding="utf16") as csvfile:
         fileReader = csv.reader(csvfile, delimiter='\t')
         count = 0
@@ -86,38 +102,48 @@ def updateDatabase(path_to_database):
             if count == 0:
                 count += 1
                 continue
+            count += 1
             charDef = readRow(row)
             print(charDef)
             if charDef:
                 waitingList = [charDef] + waitingList
     while len(waitingList) > 0:
+        newWaitingList = []
         beforeLen = len(waitingList)
         for i in reversed(range(beforeLen)):
             charDef = waitingList[i]
             if charDef.uid in characters:
                 charDefInDb = sqlite_database.getCharDef(charDef.uid)
                 if charDefInDb.lid == charDef.lid and charDefInDb.compIds == charDef.compIds:
-                    del waitingList[i]
+                    pass
                 else:
                     compsInDb = True
                     for i in range(charDef.compsLen):
                         if charDef.compIds[i] not in characters:
                             compsInDb = False
-                    if compsInDb:
+                    if compsInDb or charDef.lid == 0:
                         sqlite_database.updateChar(charDef)
-                        del waitingList[i]
+                    else:
+                        newWaitingList.append(charDef)
             else:
                 compsInDb = True
                 for i in range(charDef.compsLen):
                     if charDef.compIds[i] not in characters:
                         compsInDb = False
                 if compsInDb or charDef.lid == 0:
+                    if charDef.uid == "765a":
+                        print("Hello1")
                     sqlite_database.insertChar(charDef)
                     characters.append(charDef.uid)
-                    del waitingList[i]
-        afterLen = len(waitingList)
+                else:
+                    newWaitingList.append(charDef)
+                if charDef.uid == "765a":
+                    print("Hello2")
+        afterLen = len(newWaitingList)
         if beforeLen == afterLen:
             break
+        else:
+            waitingList = newWaitingList
     if len(waitingList) > 0:
         print(len(waitingList))
         print("The following characters could not be inserted in the database:")
@@ -278,7 +304,8 @@ def main():
         fillDatabase()
     if UPDATE_DATABASE:
         path_to_database = sys.argv[1]
-        updateDatabase(path_to_database)
+        path_to_char_to_uid = sys.argv[2]
+        updateDatabase(path_to_database, path_to_char_to_uid)
     if COMPUTE_AND_IMPORT_ARRAYS:
         styles = sys.argv[1:]
         rough_directory = os.path.dirname('../outputFiles/rough_1000/')

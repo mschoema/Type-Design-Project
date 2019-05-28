@@ -7,6 +7,10 @@ import argparse
 
 UNIT_SIZE = 256
 TARGET_WIDTH = 2 * UNIT_SIZE
+SPECIAL_UIDS = ["673a", "5668", "5b66", "4e60", 
+                "4e2d", "6587", "5b57", "4f53", 
+                "63a2", "7d22", "6280", "672f", 
+                "8bbe", "8ba1", "672a", "6765"]
 
 # convert the size of png to 256*256
 def convertpng(pngfile,outdir,width=256,height=256):
@@ -67,10 +71,11 @@ if __name__=="__main__":
 
     # make the training dataset
     for i in range(len(images)):
+        uid = images[i][-8:-4]
         target1 = Image.new('1', (TARGET_WIDTH, UNIT_SIZE))
-        target2 = Image.new('1', (TARGET_WIDTH, UNIT_SIZE))
-        target3 = Image.new('1', (TARGET_WIDTH, UNIT_SIZE))
-        target4 = Image.new('1', (TARGET_WIDTH, UNIT_SIZE))
+        # target2 = Image.new('1', (TARGET_WIDTH, UNIT_SIZE))
+        # target3 = Image.new('1', (TARGET_WIDTH, UNIT_SIZE))
+        # target4 = Image.new('1', (TARGET_WIDTH, UNIT_SIZE))
         left = 0
         right = UNIT_SIZE
         rough_image = Image.open(roughConvertOutPath+'/'+images[i])
@@ -80,13 +85,17 @@ if __name__=="__main__":
         imagefile.append(rough_image)
         for image in imagefile:
             target1.paste(image, (left, 0, right, UNIT_SIZE))
-            target2.paste(image.transpose(Image.FLIP_LEFT_RIGHT), (left, 0, right, UNIT_SIZE))
-            target3.paste(image.transpose(Image.FLIP_TOP_BOTTOM), (left, 0, right, UNIT_SIZE))
-            target4.paste(image.transpose(Image.ROTATE_180), (left, 0, right, UNIT_SIZE))
+        #     target2.paste(image.transpose(Image.FLIP_LEFT_RIGHT), (left, 0, right, UNIT_SIZE))
+        #     target3.paste(image.transpose(Image.FLIP_TOP_BOTTOM), (left, 0, right, UNIT_SIZE))
+        #     target4.paste(image.transpose(Image.ROTATE_180), (left, 0, right, UNIT_SIZE))
             left += UNIT_SIZE
             right += UNIT_SIZE
         quality_value = 100 
-        target1.save(trainPath+'0_'+str(i).zfill(4)+'_'+"1"+'.png', quality = quality_value)
-        target2.save(trainPath+'0_'+str(i).zfill(4)+'_'+"2"+'.png', quality = quality_value)
-        target3.save(trainPath+'0_'+str(i).zfill(4)+'_'+"3"+'.png', quality = quality_value)
-        target4.save(trainPath+'0_'+str(i).zfill(4)+'_'+"4"+'.png', quality = quality_value)
+        if uid in SPECIAL_UIDS:
+            print("Yes")
+            target1.save(trainPath+'1_'+str(i).zfill(4)+'_'+"1"+'.png', quality = quality_value)
+        else:
+            target1.save(trainPath+'0_'+str(i).zfill(4)+'_'+"1"+'.png', quality = quality_value)
+        # target2.save(trainPath+'0_'+str(i).zfill(4)+'_'+"2"+'.png', quality = quality_value)
+        # target3.save(trainPath+'0_'+str(i).zfill(4)+'_'+"3"+'.png', quality = quality_value)
+        # target4.save(trainPath+'0_'+str(i).zfill(4)+'_'+"4"+'.png', quality = quality_value)

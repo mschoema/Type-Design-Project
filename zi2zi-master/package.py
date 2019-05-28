@@ -24,7 +24,7 @@ def pickle_examples(paths, train_path, val_path, train_val_split=0.1):
                     r = random.random()
                     # print(r)
                     example = (label, img_bytes)
-                    if r < train_val_split:
+                    if r < train_val_split or label == 1:
                         pickle.dump(example, fv)
                     else:
                         pickle.dump(example, ft)

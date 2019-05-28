@@ -65,11 +65,13 @@ class TrainDataProvider(object):
         self.val_path = os.path.join(self.data_dir, val_name)
         self.train = PickledImageProvider(self.train_path)
         self.val = PickledImageProvider(self.val_path)
+        self.val_spec = PickledImageProvider(self.val_path)
         if self.filter_by:
             print("filter by label ->", filter_by)
             self.train.examples = filter(lambda e: e[0] in self.filter_by, self.train.examples)
             self.val.examples = filter(lambda e: e[0] in self.filter_by, self.val.examples)
-        print("train examples -> %d, val examples -> %d" % (len(self.train.examples), len(self.val.examples)))
+        self.val_spec.examples = [e for e in self.val_spec.examples if e[0] == 1]
+        print("train examples -> %d, val examples -> %d, special examples -> %d" % (len(self.train.examples), len(self.val.examples), len(self.val_spec.examples)))
 
     def get_train_iter(self, batch_size, shuffle=True):
         training_examples = self.train.examples[:]
@@ -84,6 +86,13 @@ class TrainDataProvider(object):
             np.random.seed(3000)
             np.random.shuffle(val_examples)
         return get_batch_iter(val_examples, batch_size)
+    
+    def get_val_spec_iter(self, batch_size, shuffle=True):
+        val_spec_examples = self.val_spec.examples[:]
+        if shuffle:
+            np.random.seed(3000)
+            np.random.shuffle(val_spec_examples)
+        return get_batch_iter(val_spec_examples, batch_size)
 
     def get_infinite_train_iter(self, batch_size, shuffle=True):
         """
