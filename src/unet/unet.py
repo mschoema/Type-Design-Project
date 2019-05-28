@@ -265,11 +265,13 @@ class UNet(object):
                                                 })
         return fake_images, real_images, source_images, g_loss, l1_loss, l2_edge_loss
 
-    def sample_model(self, val_iter, epoch, step, is_train_data=False):
+    def sample_model(self, val_iter, epoch, step, is_train_data=False, is_special_data=False):
         images = next(val_iter)
         fake_imgs, real_imgs, source_images, g_loss, l1_loss, l2_edge_loss = self.generate_fake_samples(images)
         if is_train_data:
             print("Train sample: g_loss: %.5f, l1_loss: %.5f, l2_edge_loss %.5f" % (g_loss, l1_loss, l2_edge_loss))
+        elif is_special_data:
+            print("Special sample: g_loss: %.5f, l1_loss: %.5f, l2_edge_loss %.5f" % (g_loss, l1_loss, l2_edge_loss))
         else:
             print("Val sample: g_loss: %.5f, l1_loss: %.5f, l2_edge_loss %.5f" % (g_loss, l1_loss, l2_edge_loss))
 
@@ -286,6 +288,8 @@ class UNet(object):
 
         if is_train_data:
             sample_img_path = os.path.join(model_sample_dir, "train_sample_%02d_%04d.png" % (epoch, step))
+        elif is_special_data:
+            sample_img_path = os.path.join(model_sample_dir, "special_sample_%02d.png" % (epoch))
         else:
             sample_img_path = os.path.join(model_sample_dir, "val_sample_%02d_%04d.png" % (epoch, step))
         misc.imsave(sample_img_path, merged_pair[:,:,0])
@@ -462,6 +466,10 @@ class UNet(object):
                 if counter % checkpoint_steps == 0:
                     print("Checkpoint: save checkpoint step %d" % counter)
                     self.checkpoint(saver, counter)
+
+            # output results for the special characters
+            special_val_iter = TrainDataProvider.get_val_spec_iter(self.batch_size)
+            self.sample_model(special_val_iter, ei, counter, is_special_data=True)
 
             # validate the current model states with train and val data
             train_l1_loss, train_iou, val_l1_loss, val_iou = self.validate_model(data_provider)
