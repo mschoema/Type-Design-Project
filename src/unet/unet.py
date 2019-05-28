@@ -468,7 +468,7 @@ class UNet(object):
                     self.checkpoint(saver, counter)
 
             # output results for the special characters
-            special_val_iter = TrainDataProvider.get_val_spec_iter(self.batch_size)
+            special_val_iter = data_provider.get_val_spec_iter(self.batch_size)
             self.sample_model(special_val_iter, ei, counter, is_special_data=True)
 
             # validate the current model states with train and val data
