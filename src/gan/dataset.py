@@ -71,36 +71,40 @@ class TrainDataProvider(object):
             self.val.examples = filter(lambda e: e[0] in self.filter_by, self.val.examples)
         print("train examples -> %d, val examples -> %d" % (len(self.train.examples), len(self.val.examples)))
 
-    def get_train_iter(self, batch_size, shuffle=False):
+    def get_train_iter(self, batch_size, shuffle=True):
         training_examples = self.train.examples[:]
         if shuffle:
+            np.random.seed(3000)
             np.random.shuffle(training_examples)
         return get_batch_iter(training_examples, batch_size)
 
-    def get_val_iter(self, batch_size, shuffle=False):
+    def get_val_iter(self, batch_size, shuffle=True):
         val_examples = self.val.examples[:]
         if shuffle:
+            np.random.seed(3000)
             np.random.shuffle(val_examples)
         return get_batch_iter(val_examples, batch_size)
 
-    def get_infinite_train_iter(self, batch_size, shuffle=False):
+    def get_infinite_train_iter(self, batch_size, shuffle=True):
         """
         Training iterator runs forever
         """
         training_examples = self.train.examples[:]
         if shuffle:
+            np.random.seed(3000)
             np.random.shuffle(training_examples)
         while True:
             train_val_batch_iter = get_batch_iter(training_examples, batch_size)
             for examples in train_val_batch_iter:
                 yield examples
 
-    def get_infinite_val_iter(self, batch_size, shuffle=False):
+    def get_infinite_val_iter(self, batch_size, shuffle=True):
         """
         Validation iterator runs forever
         """
         val_examples = self.val.examples[:]
         if shuffle:
+            np.random.seed(3000)
             np.random.shuffle(val_examples)
         while True:
             val_batch_iter = get_batch_iter(val_examples, batch_size)

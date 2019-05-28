@@ -8,7 +8,7 @@ Experiment id's with their corresponding parameter values (when different from d
 7 - gan 20 epochs (test for lists)
 
 (validation lists are obsolete)
-8 - gan 200 epochs, no l2 loss, no const loss, no dropout 
+8 - gan 200 epochs, no l2 loss, no const loss, no dropout
 9 - gan 200 epochs, no l2 loss, const loss 15, no dropout
 10 - gan 200 epochs, l2 loss 15, no const loss, no dropout
 11 - gan 200 epochs, l2 loss 15, const loss 15, no dropout
@@ -16,3 +16,5 @@ Experiment id's with their corresponding parameter values (when different from d
 (useful validation lists)
 12 - gan 200 epochs, no l2 loss, no const loss, no dropout
 13 - unet 200 epochs, no l2 loss, no const loss, no dropout
+14 - unet 200 epochs, no l2 loss, no const loss, no dropout, data augmentation
+15 - gan 200 epochs, no l2 loss, no const loss, no dropout, data augmentation
