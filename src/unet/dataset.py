@@ -89,7 +89,7 @@ class TrainDataProvider(object):
         if shuffle:
             np.random.seed(3000)
             np.random.shuffle(training_examples)
-        return get_batch_iter(training_examples, batch_size, augment=True)
+        return get_batch_iter(training_examples, batch_size, augment=False)
 
     def get_val_iter(self, batch_size, shuffle=True):
         val_examples = self.val.examples[:]
@@ -114,7 +114,7 @@ class TrainDataProvider(object):
             np.random.seed(3000)
             np.random.shuffle(training_examples)
         while True:
-            train_val_batch_iter = get_batch_iter(training_examples, batch_size, augment=True)
+            train_val_batch_iter = get_batch_iter(training_examples, batch_size, augment=False)
             for examples in train_val_batch_iter:
                 yield examples
 
