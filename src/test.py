@@ -10,15 +10,16 @@ import tensorflow as tf
 
 def main():
     image = Image.open("../outputFiles/Regular/rough_1000/4e01.png")
-    image2 = image.transpose(Image.FLIP_LEFT_RIGHT)
-    image3 = image.transpose(Image.FLIP_TOP_BOTTOM)
-    image4 = image2.transpose(Image.FLIP_TOP_BOTTOM)
-    image5 = image.transpose(Image.ROTATE_180)
-    image.show()
-    image2.show()
-    image3.show()
-    image4.show()
-    image5.show()
+    arr = np.asarray(image)
+    arr2 = np.fliplr(arr)
+    arr3 = np.flipud(arr)
+    arr4 = np.flipud(arr2)
+    arr5 = np.rot90(arr, k=2)
+    display_array(arr)
+    display_array(arr2)
+    display_array(arr3)
+    display_array(arr4)
+    display_array(arr5)
 
 
 if __name__ == "__main__":

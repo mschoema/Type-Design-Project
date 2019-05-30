@@ -32,7 +32,7 @@ class PickledImageProvider(object):
             return examples
 
 
-def get_batch_iter(examples, batch_size):
+def get_batch_iter(examples, batch_size, augment):
     # the transpose ops requires deterministic
     # batch size, thus comes the padding
     padded = pad_seq(examples, batch_size)
@@ -43,6 +43,17 @@ def get_batch_iter(examples, batch_size):
             img_A, img_B = read_split_image(img)
             img_A = normalize_image(img_A)
             img_B = normalize_image(img_B)
+            if augment:
+                r = random.randint(1,4)
+                if r == 1:
+                    img_A = np.fliplr(img_A)
+                    img_B = np.fliplr(img_B)
+                elif r == 2:
+                    img_A = np.flipud(img_A)
+                    img_B = np.flipud(img_B)
+                elif r == 3:
+                    img_A = np.rot90(img_A, k=2)
+                    img_B = np.rot90(img_B, k=2)
             return np.concatenate([img_A[:,:,np.newaxis], img_B[:,:,np.newaxis]], axis=2)
         finally:
             img.close()
@@ -78,21 +89,21 @@ class TrainDataProvider(object):
         if shuffle:
             np.random.seed(3000)
             np.random.shuffle(training_examples)
-        return get_batch_iter(training_examples, batch_size)
+        return get_batch_iter(training_examples, batch_size, augment=True)
 
     def get_val_iter(self, batch_size, shuffle=True):
         val_examples = self.val.examples[:]
         if shuffle:
             np.random.seed(3000)
             np.random.shuffle(val_examples)
-        return get_batch_iter(val_examples, batch_size)
+        return get_batch_iter(val_examples, batch_size, augment=False)
 
     def get_val_spec_iter(self, batch_size, shuffle=True):
         val_spec_examples = self.val_spec.examples[:]
         if shuffle:
             np.random.seed(3000)
             np.random.shuffle(val_spec_examples)
-        return get_batch_iter(val_spec_examples, batch_size)
+        return get_batch_iter(val_spec_examples, batch_size, augment=False)
 
     def get_infinite_train_iter(self, batch_size, shuffle=True):
         """
@@ -103,7 +114,7 @@ class TrainDataProvider(object):
             np.random.seed(3000)
             np.random.shuffle(training_examples)
         while True:
-            train_val_batch_iter = get_batch_iter(training_examples, batch_size)
+            train_val_batch_iter = get_batch_iter(training_examples, batch_size, augment=True)
             for examples in train_val_batch_iter:
                 yield examples
 
@@ -116,7 +127,7 @@ class TrainDataProvider(object):
             np.random.seed(3000)
             np.random.shuffle(val_examples)
         while True:
-            val_batch_iter = get_batch_iter(val_examples, batch_size)
+            val_batch_iter = get_batch_iter(val_examples, batch_size, augment=False)
             for examples in val_batch_iter:
                 yield examples
 
@@ -139,6 +150,6 @@ class InjectDataProvider(object):
 
     def get_random_iter(self, batch_size):
         examples = self.data.examples[:]
-        batch_iter = get_batch_iter(examples, batch_size)
+        batch_iter = get_batch_iter(examples, batch_size, augment=False)
         for images in batch_iter:
             yield images
