@@ -69,9 +69,10 @@ def get_batch_iter(examples, batch_size, augment):
 
 
 class TrainDataProvider(object):
-    def __init__(self, data_dir, train_name="train.obj", val_name="val.obj", filter_by=None):
+    def __init__(self, data_dir, train_name="train.obj", val_name="val.obj", filter_by=None, data_augmentation=False):
         self.data_dir = data_dir
         self.filter_by = filter_by
+        self.data_augmentation = data_augmentation
         self.train_path = os.path.join(self.data_dir, train_name)
         self.val_path = os.path.join(self.data_dir, val_name)
         self.train = PickledImageProvider(self.train_path)
@@ -89,7 +90,7 @@ class TrainDataProvider(object):
         if shuffle:
             np.random.seed(3000)
             np.random.shuffle(training_examples)
-        return get_batch_iter(training_examples, batch_size, augment=True)
+        return get_batch_iter(training_examples, batch_size, augment=self.data_augmentation)
 
     def get_val_iter(self, batch_size, shuffle=True):
         val_examples = self.val.examples[:]
@@ -114,7 +115,7 @@ class TrainDataProvider(object):
             np.random.seed(3000)
             np.random.shuffle(training_examples)
         while True:
-            train_val_batch_iter = get_batch_iter(training_examples, batch_size, augment=True)
+            train_val_batch_iter = get_batch_iter(training_examples, batch_size, augment=self.data_augmentation)
             for examples in train_val_batch_iter:
                 yield examples
 

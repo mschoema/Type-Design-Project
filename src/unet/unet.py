@@ -383,7 +383,7 @@ class UNet(object):
             save_imgs(batch_buffer, count)
 
     def train(self, lr=0.0002, epoch=100, schedule=10, resume=True,
-              freeze_encoder=False, fine_tune=None, sample_steps=50, checkpoint_steps=500):
+              freeze_encoder=False, fine_tune=None, sample_steps=50, checkpoint_steps=500, data_augmentation=False):
         g_vars = self.retrieve_trainable_vars(freeze_encoder=freeze_encoder)
         input_handle, loss_handle, _, summary_handle = self.retrieve_handles()
 
@@ -396,7 +396,7 @@ class UNet(object):
         real_data = input_handle.real_data
 
         # filter by one type of labels
-        data_provider = TrainDataProvider(self.data_dir, filter_by=fine_tune)
+        data_provider = TrainDataProvider(self.data_dir, filter_by=fine_tune, data_augmentation=data_augmentation)
         total_batches = data_provider.compute_total_batch_num(self.batch_size)
         val_batch_iter = data_provider.get_infinite_val_iter(self.batch_size)
         train_val_batch_iter = data_provider.get_infinite_train_iter(self.batch_size)

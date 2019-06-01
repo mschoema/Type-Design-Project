@@ -15,6 +15,7 @@ parser.add_argument('--experiment_dir', dest='experiment_dir', default="../../ou
 parser.add_argument('--experiment_id', dest='experiment_id', type=int, default=0,
                     help='sequence id for the experiments you prepare to run')
 parser.add_argument('--data_path', dest='data', type=str, default="data", help="path to use for the data provider (default: 'data')")
+parser.add_argument('--data_augmentation', dest='data_augmentation', type=bool, default=False, help="Use data augmentation (default: False)")
 parser.add_argument('--image_size', dest='image_size', type=int, default=256,
                     help="size of your input and output image")
 parser.add_argument('--L1_penalty', dest='L1_penalty', type=int, default=100, help='weight for L1 loss')
@@ -54,7 +55,7 @@ def main(_):
             fine_tune_list = set([int(i) for i in ids])
         model.train(lr=args.lr, epoch=args.epoch, resume=args.resume,
                     schedule=args.schedule, freeze_encoder=args.freeze_encoder, fine_tune=fine_tune_list,
-                    sample_steps=args.sample_steps, checkpoint_steps=args.checkpoint_steps)
+                    sample_steps=args.sample_steps, checkpoint_steps=args.checkpoint_steps, data_augmentation=args.data_augmentation)
 
 
 

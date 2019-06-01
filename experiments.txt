@@ -24,4 +24,4 @@ Experiment id's with their corresponding parameter values (when different from d
 17 - gan 200 epochs, no l2 loss, no const loss, no dropout
 18 - unet 200 epochs, l2 loss 50, no const loss, no dropout
 19 - gan 200 epochs, no l2 loss, no const loss, no dropout, data augmentation
-19 - unet 200 epochs, no l2 loss, no const loss, no dropout, data augmentation
+20 - unet 200 epochs, no l2 loss, no const loss, no dropout, data augmentation
