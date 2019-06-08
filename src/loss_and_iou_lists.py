@@ -43,7 +43,8 @@ def main(experiment_ids):
         with open(counter_path, 'rb') as c:
             counter_list = pickle.load(c)
 
-        print(train_iou_list[-15:])
+        print("Experiment: " + experiment_id)
+        print(max(val_iou_list))
         
         count += 1
         plt.subplot(221)

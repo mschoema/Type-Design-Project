@@ -467,9 +467,9 @@ class UNet(object):
                     print("Checkpoint: save checkpoint step %d" % counter)
                     self.checkpoint(saver, counter)
 
-            # output results for the special characters
-            special_val_iter = data_provider.get_val_spec_iter(self.batch_size)
-            self.sample_model(special_val_iter, ei, counter, is_special_data=True)
+            # # output results for the special characters
+            # special_val_iter = data_provider.get_val_spec_iter(self.batch_size)
+            # self.sample_model(special_val_iter, ei, counter, is_special_data=True)
 
             # validate the current model states with train and val data
             train_l1_loss, train_iou, val_l1_loss, val_iou = self.validate_model(data_provider)
