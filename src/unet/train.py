@@ -19,7 +19,7 @@ parser.add_argument('--data_augmentation', dest='data_augmentation', type=bool, 
 parser.add_argument('--image_size', dest='image_size', type=int, default=256,
                     help="size of your input and output image")
 parser.add_argument('--L1_penalty', dest='L1_penalty', type=int, default=100, help='weight for L1 loss')
-parser.add_argument('--L2_edge_penalty', dest='L2_edge_penalty', type=int, default=15, help='weight for L2 edge loss')
+parser.add_argument('--L2_edge_penalty', dest='L2_edge_penalty', type=int, default=0, help='weight for L2 edge loss')
 parser.add_argument('--Lconst_penalty', dest='Lconst_penalty', type=int, default=15, help='weight for const loss')
 parser.add_argument('--dropout', dest='dropout', type=bool, default=False, help='set to true for extra dropout')
 parser.add_argument('--epoch', dest='epoch', type=int, default=200, help='number of epoch')

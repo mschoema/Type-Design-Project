@@ -7,10 +7,11 @@ import argparse
 
 UNIT_SIZE = 256
 TARGET_WIDTH = 2 * UNIT_SIZE
-SPECIAL_UIDS = ["673a", "5668", "5b66", "4e60", 
-                "4e2d", "6587", "5b57", "4f53", 
-                "63a2", "7d22", "6280", "672f", 
-                "8bbe", "8ba1", "672a", "6765"]
+SPECIAL_UIDS = []
+# SPECIAL_UIDS = ["673a", "5668", "5b66", "4e60", 
+#                 "4e2d", "6587", "5b57", "4f53", 
+#                 "63a2", "7d22", "6280", "672f", 
+#                 "8bbe", "8ba1", "672a", "6765"]
 
 # convert the size of png to 256*256
 def convertpng(pngfile,outdir,width=256,height=256):
@@ -44,11 +45,11 @@ def convertImageType(dirName):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='manual to this script')
-    parser.add_argument('--roughConvertInPath', type=str, default = "../outputFiles/rough_1000/")
-    parser.add_argument('--roughConvertOutPath', type=str, default = "../outputFiles/rough_256/")
-    parser.add_argument('--originConvertInPath', type=str, default = "../outputFiles/origin_1000/")
-    parser.add_argument('--originConvertOutPath', type=str, default = "../outputFiles/origin_256/")
-    parser.add_argument('--trainPath', type=str, default = "../outputFiles/train_256/")
+    parser.add_argument('--roughConvertInPath', type=str, default = "../outputFiles/Songti-for-training/rough_1000/")
+    parser.add_argument('--roughConvertOutPath', type=str, default = "../outputFiles/Songti-for-training/rough_256/")
+    parser.add_argument('--originConvertInPath', type=str, default = "../outputFiles/Songti-for-training/origin_1000/")
+    parser.add_argument('--originConvertOutPath', type=str, default = "../outputFiles/Songti-for-training/origin_256/")
+    parser.add_argument('--trainPath', type=str, default = "../outputFiles/Songti-for-training/train_256/")
 
     args = parser.parse_args()
     roughConvertInPath = args.roughConvertInPath+"*.png"
@@ -93,9 +94,9 @@ if __name__=="__main__":
         quality_value = 100 
         if uid in SPECIAL_UIDS:
             print("Yes")
-            target1.save(trainPath+'1_'+str(i).zfill(4)+'_'+"1"+'.png', quality = quality_value)
+            target1.save(trainPath+'1_'+str(i).zfill(5)+'_'+"1"+'.png', quality = quality_value)
         else:
-            target1.save(trainPath+'0_'+str(i).zfill(4)+'_'+"1"+'.png', quality = quality_value)
+            target1.save(trainPath+'0_'+str(i).zfill(5)+'_'+"1"+'.png', quality = quality_value)
         # target2.save(trainPath+'0_'+str(i).zfill(4)+'_'+"2"+'.png', quality = quality_value)
         # target3.save(trainPath+'0_'+str(i).zfill(4)+'_'+"3"+'.png', quality = quality_value)
         # target4.save(trainPath+'0_'+str(i).zfill(4)+'_'+"4"+'.png', quality = quality_value)

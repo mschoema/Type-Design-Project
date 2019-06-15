@@ -232,9 +232,13 @@ class UNet(object):
         model_dir = os.path.join(self.checkpoint_dir, model_id)
         return model_id, model_dir
 
-    def checkpoint(self, saver, step):
+    def checkpoint(self, saver, step, special_dir=None):
         model_name = "unet.model"
+
         model_id, model_dir = self.get_model_id_and_dir()
+
+        if special_dir:
+            model_dir = os.path.join(model_dir, special_dir)
 
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
@@ -401,7 +405,7 @@ class UNet(object):
         val_batch_iter = data_provider.get_infinite_val_iter(self.batch_size)
         train_val_batch_iter = data_provider.get_infinite_train_iter(self.batch_size)
 
-        saver = tf.train.Saver(max_to_keep=3)
+        saver = tf.train.Saver(max_to_keep=5)
         summary_writer = tf.summary.FileWriter(self.log_dir, self.sess.graph)
 
         if resume:
@@ -463,13 +467,29 @@ class UNet(object):
                     self.sample_model(val_batch_iter, ei, counter)
                     self.sample_model(train_val_batch_iter, ei, counter, is_train_data=True)
 
-                if counter % checkpoint_steps == 0:
-                    print("Checkpoint: save checkpoint step %d" % counter)
-                    self.checkpoint(saver, counter)
+                # if counter % checkpoint_steps == 0:
+                #     print("Checkpoint: save checkpoint step %d" % counter)
+                #     self.checkpoint(saver, counter)
 
             # # output results for the special characters
             # special_val_iter = data_provider.get_val_spec_iter(self.batch_size)
             # self.sample_model(special_val_iter, ei, counter, is_special_data=True)
+
+            if (ei + 1) == 15:
+                print("Checkpoint: save special checkpoint epoch %d" % (ei + 1))
+                self.checkpoint(saver, counter, special_dir="epoch_15")
+            elif (ei + 1) == 30:
+                print("Checkpoint: save special checkpoint epoch %d" % (ei + 1))
+                self.checkpoint(saver, counter, special_dir="epoch_30")
+            elif (ei + 1) == 65:
+                print("Checkpoint: save special checkpoint epoch %d" % (ei + 1))
+                self.checkpoint(saver, counter, special_dir="epoch_65")
+            elif (ei + 1) == 100:
+                print("Checkpoint: save special checkpoint epoch %d" % (ei + 1))
+                self.checkpoint(saver, counter, special_dir="epoch_100")
+            elif (ei + 1) == 200:
+                print("Checkpoint: save special checkpoint epoch %d" % (ei + 1))
+                self.checkpoint(saver, counter, special_dir="epoch_200")
 
             # validate the current model states with train and val data
             train_l1_loss, train_iou, val_l1_loss, val_iou = self.validate_model(data_provider)
@@ -480,8 +500,8 @@ class UNet(object):
             self.val_iou_list.append(val_iou)
 
         # save the last checkpoint
-        print("Checkpoint: last checkpoint step %d" % counter)
-        self.checkpoint(saver, counter)
+        # print("Checkpoint: last checkpoint step %d" % counter)
+        # self.checkpoint(saver, counter)
 
         # Save loss and iou lists
         print("Saving counter, loss and iou lists:")

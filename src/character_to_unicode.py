@@ -22,6 +22,15 @@ def getUid(char):
         else:
             raise Exception("Character unicode not in accepted range")
 
+def getChar(uid):
+    if len(UNICODES) == 0:
+        prepareCharacters()
+    if uid in UNICODES:
+        i = UNICODES.index(uid)
+        char = UTF_20902[i]
+    else:
+        char = ""
+    return char
 
 def takeUnicode(elem):
     return elem.encode('unicode_escape').decode()[2:]

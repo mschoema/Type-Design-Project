@@ -17,13 +17,15 @@ import copy
 Converting numpy array to binary and back for insertion in sql
 """
 
-DATABASE_PATH = "../database.db"
-TEXT_DATABASE_PATH = "../inputFiles/database4.0.txt"
-CHARACTER_IMAGES_PATH = "../characterImages/"
-OUTPUT_PATH = "../outputFiles/"
 FILL_DATABASE = False
+DATABASE_PATH = "../database.db"
 UPDATE_DATABASE = False
-COMPUTE_AND_IMPORT_ARRAYS = True
+TEXT_DATABASE_PATH = "../inputFiles/database4.0.txt"
+COMPUTE_AND_IMPORT_ARRAYS = False
+CHARACTER_IMAGES_PATH = "../characterImages/"
+PROCESS_STYLES = True
+PATH_TO_PROCESS = "../characterImages/Songti-for-training/"
+OUTPUT_PATH = "../outputFiles/Songti-for-training/"
 SHOW_ARRAYS = False
 SHELL = False
 IMAGE_WIDTH = 1000
@@ -157,13 +159,13 @@ def computeAndImportArrays(style):
         print("Adding base images to dictionary")
         roughImageDic = {}
         arrayDic = {}
-        for file in os.listdir(CHARACTER_IMAGES_PATH + style + "/"):
+        for file in os.listdir(PATH_TO_PROCESS + style + "/"):
             if file.endswith(".png"):
                 uid = file[:-4]
                 charDef = charDefDic.get(uid)
                 if charDef != None:
                     try:
-                        image = Image.open(CHARACTER_IMAGES_PATH + style + "/" + file)
+                        image = Image.open(PATH_TO_PROCESS + style + "/" + file)
                         image = image.convert('1')
                         image = image.resize(IMAGE_SIZE)
                         if charDef.lid == 0:
@@ -229,8 +231,9 @@ def computeAndImportArrays(style):
                     # ac.addRoughDef(arr)
                     ac.addRoughDef(roughImage)
                 except Exception as error:
-                        print("Error encountered for unicode: ",uid)
-                        print("Error message: ", error)
+                    pass
+                    # print("Error encountered for unicode: ",uid)
+                    # print("Error message: ", error)
         print("")
 
 
@@ -272,7 +275,8 @@ def computeAndImportArrays(style):
             images[0].save(OUTPUT_PATH + ac.style + "/origin_1000/" + ac.uid + ".png")
             # images[2].save(OUTPUT_PATH + ac.style + "/lossmap_1000/" + ac.uid + ".png")
         else:
-            ac.printIncomplete()
+            pass
+            # ac.printIncomplete()
     print("Done")
 
 def sqlShell():
@@ -310,23 +314,33 @@ def main():
         styles = sys.argv[1:]
         rough_directory = os.path.dirname('../outputFiles/rough_1000/')
         origin_directory = os.path.dirname('../outputFiles/origin_1000/')
-        lossmap_directory = os.path.dirname('../outputFiles/lossmap_1000/')
         if not os.path.exists(rough_directory):
             os.makedirs(rough_directory)
         if not os.path.exists(origin_directory):
             os.makedirs(origin_directory)
-        if not os.path.exists(lossmap_directory):
-            os.makedirs(lossmap_directory)
         for style in styles:
             rough_directory = os.path.dirname('../outputFiles/{}/rough_1000/'.format(style))
             origin_directory = os.path.dirname('../outputFiles/{}/origin_1000/'.format(style))
-            lossmap_directory = os.path.dirname('../outputFiles/{}/lossmap_1000/'.format(style))
             if not os.path.exists(rough_directory):
                 os.makedirs(rough_directory)
             if not os.path.exists(origin_directory):
                 os.makedirs(origin_directory)
-            if not os.path.exists(lossmap_directory):
-                os.makedirs(lossmap_directory)
+            computeAndImportArrays(style)
+    if PROCESS_STYLES:
+        styles = os.listdir(PATH_TO_PROCESS)
+        rough_directory = os.path.dirname('../outputFiles/Songti-for-training/rough_1000/')
+        origin_directory = os.path.dirname('../outputFiles/Songti-for-training/origin_1000/')
+        if not os.path.exists(rough_directory):
+            os.makedirs(rough_directory)
+        if not os.path.exists(origin_directory):
+            os.makedirs(origin_directory)
+        for style in styles:
+            rough_directory = os.path.dirname('../outputFiles/Songti-for-training/{}/rough_1000/'.format(style))
+            origin_directory = os.path.dirname('../outputFiles/Songti-for-training/{}/origin_1000/'.format(style))
+            if not os.path.exists(rough_directory):
+                os.makedirs(rough_directory)
+            if not os.path.exists(origin_directory):
+                os.makedirs(origin_directory)
             computeAndImportArrays(style)
     if SHELL:
         sqlShell()

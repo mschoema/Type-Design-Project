@@ -33,8 +33,8 @@ def pickle_examples(paths, train_path, val_path, train_val_split=0.1):
 
 
 parser = argparse.ArgumentParser(description='Compile list of images into a pickled object for training')
-parser.add_argument('--dir', dest='dir', default="../outputFiles/train_256/", help='path of examples')
-parser.add_argument('--save_dir', dest='save_dir', default="../outputFiles/experiment/data2/", help='path to save pickled files')
+parser.add_argument('--dir', dest='dir', default="../outputFiles/Songti-for-training/train_256/", help='path of examples')
+parser.add_argument('--save_dir', dest='save_dir', default="../outputFiles/experiment/data_songti/", help='path to save pickled files')
 parser.add_argument('--split_ratio', type=float, default=0.1, dest='split_ratio',
                     help='split ratio between train and val')
 args = parser.parse_args()

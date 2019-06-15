@@ -66,7 +66,7 @@ def merge(images, size):
 
 def save_concat_images(imgs, img_path):
     concated = np.concatenate(imgs, axis=1)
-    misc.imsave(img_path, concated)
+    misc.imsave(img_path, concated[:,:,0])
 
 
 def compile_frames_to_gif(frame_dir, gif_file):
