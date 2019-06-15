@@ -77,7 +77,7 @@ class TrainDataProvider(object):
         self.val_path = os.path.join(self.data_dir, val_name)
         self.train = PickledImageProvider(self.train_path)
         self.val = PickledImageProvider(self.val_path)
-        self.val_spec = PickledImageProvider(self.train_path)
+        self.val_spec = PickledImageProvider(self.val_path)
         if self.filter_by:
             print("filter by label ->", filter_by)
             self.train.examples = filter(lambda e: e[0] in self.filter_by, self.train.examples)
