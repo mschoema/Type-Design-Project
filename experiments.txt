@@ -28,5 +28,11 @@ Experiment id's with their corresponding parameter values (when different from d
 21 - unet 200 epochs, no l2 loss, const loss 15, no dropout
 22 - unet 200 epochs, l2 loss 15, const loss 15, no dropout
 
-24 - unet, 667a, precise, 100 epochs, no l2 loss
-24 - unet, 667a, rough, 100 epochs, no l2 loss
+24 - unet, 667a, precise, 100 epochs, 64 filters
+25 - unet, 667a, rough, 100 epochs, 64 filters
+26 - unet, 667a, precise, 100 epochs, 32 filters, dropout
+27 - unet, 667a, rough, 100 epochs, 32 filters, dropout
+28 - gan, 667a, precise, 100 epochs, 64 filters, dropout
+29 - gan, 667a, rough, 100 epochs, 64 filters, dropout
+30 - gan, 667a, precise, 200 epochs, 64 filters
+31 - gan, 667a, rough, 200 epochs, 64 filters
