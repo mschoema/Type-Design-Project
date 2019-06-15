@@ -36,3 +36,6 @@ Experiment id's with their corresponding parameter values (when different from d
 29 - gan, 667a, rough, 100 epochs, 64 filters, dropout
 30 - gan, 667a, precise, 200 epochs, 64 filters
 31 - gan, 667a, rough, 200 epochs, 64 filters
+
+32 - special chars in val, specs of 21
+32 - special chars in train, specs of 21
