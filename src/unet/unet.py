@@ -23,7 +23,7 @@ SummaryHandle = namedtuple("SummaryHandle", ["g_merged"])
 
 class UNet(object):
     def __init__(self, experiment_dir=None, experiment_id=0, batch_size=16, input_width=256, output_width=256,
-                 generator_dim=64, L1_penalty=100, L2_edge_penalty=15, Lconst_penalty=15, dropout=False, input_filters=1, output_filters=1, data="data"):
+                 generator_dim=64, L1_penalty=100, L2_edge_penalty=0, Lconst_penalty=15, dropout=False, input_filters=1, output_filters=1, data="data"):
         self.experiment_dir = experiment_dir
         self.experiment_id = experiment_id
         self.batch_size = batch_size
@@ -471,9 +471,9 @@ class UNet(object):
                 #     print("Checkpoint: save checkpoint step %d" % counter)
                 #     self.checkpoint(saver, counter)
 
-            # # output results for the special characters
-            # special_val_iter = data_provider.get_val_spec_iter(self.batch_size)
-            # self.sample_model(special_val_iter, ei, counter, is_special_data=True)
+            # output results for the special characters
+            special_val_iter = data_provider.get_val_spec_iter(self.batch_size)
+            self.sample_model(special_val_iter, ei, counter, is_special_data=True)
 
             if (ei + 1) == 15:
                 print("Checkpoint: save special checkpoint epoch %d" % (ei + 1))
