@@ -41,3 +41,5 @@ Experiment id's with their corresponding parameter values (when different from d
 33 - special chars in train, specs of 21
 
 34 - songit styles, specs of 21
+
+35 - special chars in train, specs of 21

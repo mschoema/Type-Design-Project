@@ -21,9 +21,9 @@ FILL_DATABASE = False
 DATABASE_PATH = "../database.db"
 UPDATE_DATABASE = False
 TEXT_DATABASE_PATH = "../inputFiles/database4.0.txt"
-COMPUTE_AND_IMPORT_ARRAYS = False
+COMPUTE_AND_IMPORT_ARRAYS = True
 CHARACTER_IMAGES_PATH = "../characterImages/"
-PROCESS_STYLES = True
+PROCESS_STYLES = False
 PATH_TO_PROCESS = "../characterImages/Songti-for-training/"
 OUTPUT_PATH = "../outputFiles/Songti-for-training/"
 SHOW_ARRAYS = False
@@ -159,13 +159,13 @@ def computeAndImportArrays(style):
         print("Adding base images to dictionary")
         roughImageDic = {}
         arrayDic = {}
-        for file in os.listdir(PATH_TO_PROCESS + style + "/"):
+        for file in os.listdir(CHARACTER_IMAGES_PATH + style + "/"):
             if file.endswith(".png"):
                 uid = file[:-4]
                 charDef = charDefDic.get(uid)
                 if charDef != None:
                     try:
-                        image = Image.open(PATH_TO_PROCESS + style + "/" + file)
+                        image = Image.open(CHARACTER_IMAGES_PATH + style + "/" + file)
                         image = image.convert('1')
                         image = image.resize(IMAGE_SIZE)
                         if charDef.lid == 0:
@@ -176,8 +176,10 @@ def computeAndImportArrays(style):
                             ac = ArrayCollection(uid, style, image)
                             arrayDic.update({uid: ac})
                     except Exception as error:
-                        print("Error encountered for unicode: ",uid)
-                        print("Error message: ", error)
+                        ac = ArrayCollection(uid, style)
+                        arrayDic.update({uid: ac})
+                        # print("Error encountered for unicode: ",uid)
+                        # print("Error message: ", error)
         return roughImageDic, arrayDic
 
     def createCharImage(uid):
@@ -231,9 +233,9 @@ def computeAndImportArrays(style):
                     # ac.addRoughDef(arr)
                     ac.addRoughDef(roughImage)
                 except Exception as error:
-                    pass
-                    # print("Error encountered for unicode: ",uid)
-                    # print("Error message: ", error)
+                    # pass
+                    print("Error encountered for unicode: ",uid)
+                    print("Error message: ", error)
         print("")
 
 
@@ -267,12 +269,12 @@ def computeAndImportArrays(style):
         if ac.isComplete():
             images = [ac.character, ac.roughDefinition, ac.lossMap]
 
-            images[1].save(OUTPUT_PATH + "/rough_1000/" + ac.style + "_" + ac.uid + ".png")
-            images[0].save(OUTPUT_PATH + "/origin_1000/" + ac.style + "_" + ac.uid + ".png")
+            # images[1].save(OUTPUT_PATH + "/rough_1000/" + ac.style + "_" + ac.uid + ".png")
+            # images[0].save(OUTPUT_PATH + "/origin_1000/" + ac.style + "_" + ac.uid + ".png")
             # images[2].save(OUTPUT_PATH + "/lossmap_1000/" + ac.style + "_" + ac.uid + ".png")
 
             images[1].save(OUTPUT_PATH + ac.style + "/rough_1000/" + ac.uid + ".png")
-            images[0].save(OUTPUT_PATH + ac.style + "/origin_1000/" + ac.uid + ".png")
+            # images[0].save(OUTPUT_PATH + ac.style + "/origin_1000/" + ac.uid + ".png")
             # images[2].save(OUTPUT_PATH + ac.style + "/lossmap_1000/" + ac.uid + ".png")
         else:
             pass
@@ -312,19 +314,19 @@ def main():
         updateDatabase(path_to_database, path_to_char_to_uid)
     if COMPUTE_AND_IMPORT_ARRAYS:
         styles = sys.argv[1:]
-        rough_directory = os.path.dirname('../outputFiles/rough_1000/')
-        origin_directory = os.path.dirname('../outputFiles/origin_1000/')
-        if not os.path.exists(rough_directory):
-            os.makedirs(rough_directory)
-        if not os.path.exists(origin_directory):
-            os.makedirs(origin_directory)
+        # rough_directory = os.path.dirname('../outputFiles/rough_1000/')
+        # origin_directory = os.path.dirname('../outputFiles/origin_1000/')
+        # if not os.path.exists(rough_directory):
+        #     os.makedirs(rough_directory)
+        # if not os.path.exists(origin_directory):
+        #     os.makedirs(origin_directory)
         for style in styles:
             rough_directory = os.path.dirname('../outputFiles/{}/rough_1000/'.format(style))
-            origin_directory = os.path.dirname('../outputFiles/{}/origin_1000/'.format(style))
+            # origin_directory = os.path.dirname('../outputFiles/{}/origin_1000/'.format(style))
             if not os.path.exists(rough_directory):
                 os.makedirs(rough_directory)
-            if not os.path.exists(origin_directory):
-                os.makedirs(origin_directory)
+            # if not os.path.exists(origin_directory):
+            #     os.makedirs(origin_directory)
             computeAndImportArrays(style)
     if PROCESS_STYLES:
         styles = os.listdir(PATH_TO_PROCESS)

@@ -3,6 +3,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 import pickle
 import numpy as np
+import scipy.misc as misc
 import random
 import os
 from utils import pad_seq, bytes_to_file, \
@@ -40,21 +41,23 @@ def get_batch_iter(examples, batch_size, augment):
     def process(img):
         img = bytes_to_file(img)
         try:
-            img_A, img_B = read_split_image(img)
-            img_A = normalize_image(img_A)
-            img_B = normalize_image(img_B)
-            if augment:
-                r = random.randint(1,4)
-                if r == 1:
-                    img_A = np.fliplr(img_A)
-                    img_B = np.fliplr(img_B)
-                elif r == 2:
-                    img_A = np.flipud(img_A)
-                    img_B = np.flipud(img_B)
-                elif r == 3:
-                    img_A = np.rot90(img_A, k=2)
-                    img_B = np.rot90(img_B, k=2)
-            return np.concatenate([img_A[:,:,np.newaxis], img_B[:,:,np.newaxis]], axis=2)
+            mat = misc.imread(img).astype(np.float)
+            return normalize_image(mat)
+            # img_A, img_B = read_split_image(img)
+            # img_A = normalize_image(img_A)
+            # img_B = normalize_image(img_B)
+            # if augment:
+            #     r = random.randint(1,4)
+            #     if r == 1:
+            #         img_A = np.fliplr(img_A)
+            #         img_B = np.fliplr(img_B)
+            #     elif r == 2:
+            #         img_A = np.flipud(img_A)
+            #         img_B = np.flipud(img_B)
+            #     elif r == 3:
+            #         img_A = np.rot90(img_A, k=2)
+            #         img_B = np.rot90(img_B, k=2)
+            # return np.concatenate([img_A[:,:,np.newaxis], img_B[:,:,np.newaxis]], axis=2)
         finally:
             img.close()
 

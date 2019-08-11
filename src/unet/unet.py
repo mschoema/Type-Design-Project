@@ -375,16 +375,23 @@ class UNet(object):
         count = 0
         batch_buffer = list()
         for source_imgs in source_iter:
-            fake_imgs = self.generate_fake_samples(source_imgs)[0]
+            imgs = np.empty((16,256,256,2))
+            imgs[:,:,:,0] = source_imgs
+            imgs[:,:,:,1] = source_imgs
+            fake_imgs, _, src_imgs = self.generate_fake_samples(imgs)[:3]
             merged_fake_images = merge(scale_back(fake_imgs), [self.batch_size, 1])
-            batch_buffer.append(merged_fake_images)
-            if len(batch_buffer) == 10:
-                save_imgs(batch_buffer, count)
-                batch_buffer = list()
+            merged_src_images = merge(scale_back(src_imgs), [self.batch_size, 1])
+            merged_pair = np.concatenate([merged_fake_images, merged_src_images], axis=1)            
+            misc.imsave(os.path.join(save_dir,"predicted_%04d.png" % count), merged_pair[:,:,0])
+
+            # batch_buffer.append(merged_fake_images)
+            # if len(batch_buffer) == 10:
+            #     save_imgs(batch_buffer, count)
+            #     batch_buffer = list()
             count += 1
-        if batch_buffer:
-            # last batch
-            save_imgs(batch_buffer, count)
+        # if batch_buffer:
+        #     # last batch
+        #     save_imgs(batch_buffer, count)
 
     def train(self, lr=0.0002, epoch=100, schedule=10, resume=True,
               freeze_encoder=False, fine_tune=None, sample_steps=50, checkpoint_steps=500, data_augmentation=False):
